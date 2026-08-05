@@ -227,6 +227,20 @@ Exposes `mobilize_simulated` (free) and `mobilize_real` (spends credits,
 never expands beyond the phones explicitly given) as MCP tools, so any
 MCP-compatible agent can trigger a mobilization directly.
 
+### Live dashboard
+
+```bash
+python -m mobilize.app.dashboard
+open http://localhost:8731
+```
+
+Watch a simulated mobilization unfold in real time over a WebSocket: each
+candidate lights up on dispatch, colors by outcome as results stream in,
+and the map shows exactly how many donors in the pool were never called
+once the need was met. Free, simulated, no calls placed — this is the demo
+visualization, not a production service. Port is configurable via
+`MOBILIZE_DASHBOARD_PORT`.
+
 ## Repository layout
 
 ```
@@ -252,9 +266,10 @@ stakes for why stopping at exactly the right moment matters.
 
 ## What was cut, and why
 
-Time-boxed for a 40-day solo build. Cut in this order if needed, documented
-here rather than silently dropped: Prometheus metrics dashboard → the
-planner's optimizer simplifies to fixed-wave-size heuristics → contact-fatigue
-modeling → live web dashboard collapses to the terminal CLI. The engine's
+Time-boxed for a 40-day solo build. Cut in this order if time runs short,
+documented here rather than silently dropped: a Prometheus metrics exporter
+→ the planner's optimizer simplifies to fixed-wave-size heuristics →
+contact-fatigue modeling. The live WebSocket dashboard and the terminal CLI
+are both delivered — either can be dropped without touching the engine's
 core guarantees (wave dispatch, commitment calibration, crash-safe ledger,
-governance) are never cut.
+governance), which are never cut.
