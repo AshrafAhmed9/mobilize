@@ -9,5 +9,5 @@
     "commitment_score": 0.54,
     "note": "Scored just below the 0.55 confirmation threshold, so correctly NOT counted as confirmed. This is the commitment calibration system behaving as designed at a real decision boundary, not a bug -- it demonstrates the threshold is discriminating rather than rubber-stamping every stated yes."
   },
-  "phone_redacted": "+9199XXXXX318"
+  "phone_redacted": "[redacted]"
 }

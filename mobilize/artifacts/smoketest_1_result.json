@@ -25,5 +25,5 @@
     {"offset_seconds": 45, "speaker": "bot", "text": "Thank you, bye."}
   ],
   "raw_status": "completed",
-  "phone_redacted": "+9199XXXXX318"
+  "phone_redacted": "[redacted]"
 }
