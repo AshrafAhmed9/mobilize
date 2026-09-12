@@ -50,8 +50,7 @@ during judging.
 
 ## What remains for actual public hosting
 
-Out of scope here per this task's scope limit — needs Ashraf's
-authorization and a hosting/DNS/TLS decision, not more engineering here:
+Not yet done. This needs a hosting/DNS/TLS decision, not more engineering:
 
 - A hosting account and deploy step (Fly.io / Render / a container host —
   no framework changes needed, this is a plain FastAPI app).

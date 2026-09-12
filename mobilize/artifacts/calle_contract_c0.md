@@ -133,8 +133,13 @@ transport.
   documented.
 
 None of the above can be confirmed without live `CALLE_API_KEY` credentials.
-This section should be re-run as a live smoke test once Ashraf has
-credentials in an authorized environment.
+
+**Update, 12 September 2026 (later the same day):** live credentials became
+available and this was re-run for real. See
+`mobilize/artifacts/validation_results.md` and
+`mobilize/artifacts/real_call_validation/` for five real calls placed
+against the current dispatcher/commitment code, and the section
+immediately below for the call_id reconciliation result specifically.
 
 ## The call_id reconciliation problem
 
@@ -149,8 +154,8 @@ for `GET /v1/calls/{id}` polling, per `CallTaskObject`/the task-level `id`
 field. It is not, and was never meant to be, the same value as a billing
 record's ID.
 
-The two real historical billing-record IDs Ashraf has (from CALL-E's
-dashboard, outside this repo): `b981d2935adf4053be2d9e6a96599ad4` and
+The two real historical billing-record IDs (from CALL-E's dashboard,
+outside this repo): `b981d2935adf4053be2d9e6a96599ad4` and
 `db39ddca6b684932bbdd908764740b58` — 32-character hex strings. Per the
 generated schema, the correct field to compare against those is
 `recipients[].attempts[].provider_call_id` ("provider call identifier for
@@ -173,16 +178,22 @@ reasons:**
    populates (the full API response) is not what got persisted to this
    artifact.
 
-Per the execution plan: **a missing/expired historical task is
-inconclusive — do not invent a match.** This is exactly that case: neither
-"the two hex billing IDs correspond to this smoketest call" nor "they
-don't" can be asserted from what's stored. The correction is procedural,
-not a fabricated resolution: `smoketest_1_result.json` needs a
-`provenance_note` (added below, not a silent rewrite) recording that its
-`call_id` is a task ID, is not directly comparable to the two hex billing
-IDs, and that closing this gap requires either live re-polling of the
-original task (if still retrievable — CALL-E task retention is unknown to
-this sandbox) or capturing `provider_call_id` on any future real call.
+A missing/expired historical task is inconclusive; the correct move here
+would be to say so rather than invent a match. At the time this section
+was written, neither "the two hex billing IDs correspond to this
+smoketest call" nor "they don't" could be asserted from what was stored.
+
+**Resolved, later the same day:** the original task was still retrievable.
+Live re-polling `GET /v1/calls/call_2jcA9r17_ndyzxp8IYkkhA` returned
+`recipients[0].attempts[0].provider_call_id = "db39ddca6b684932bbdd908764740b58"`,
+an exact match to one of the two billing IDs above. `smoketest_1_result.json`
+and this call are confirmed to be the same real event. The other billing
+ID, `b981d2935adf4053be2d9e6a96599ad4`, most likely corresponds to
+`smoketest_2_result.json`, but that call never had a task ID saved anywhere,
+and there is no way to look one up by billing ID (no list/search endpoint
+exists), so that half of the reconciliation is a permanent gap, not a
+temporary one. See `smoketest_1_result.json`'s and `smoketest_2_result.json`'s
+own provenance notes for the full account.
 
 ## devpost_submission.md correction
 

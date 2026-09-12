@@ -7,28 +7,39 @@ below is the last committed revision, not necessarily what you're reading.
 
 ## 1. Real call -> normalized decision -> dispatch trace -> roster
 
-**Pending.** No real calls have been placed for this submission as of this
-writing (12 September 2026); that's outstanding work owned by Ashraf, not
-completed evidence.
+**Done.** Five real calls were placed against the current dispatcher and
+commitment-scoring code on 12 September 2026, against a pre-declared
+answer key committed before any call was made
+(`mobilize/artifacts/validation_answer_key.md`). Raw provider payloads and
+the local dispatch result for each are in
+`mobilize/artifacts/real_call_validation/`; the full comparison against the
+answer key, including one real bug the batch caught and the fix that
+followed, is in `mobilize/artifacts/validation_results.md`. Highlights:
 
-Two earlier smoke-test calls exist from day-1 development and are cited
-honestly, with their limitations:
+- A retraction call (stated "yes", then withdrew it mid-call) was correctly
+  scored `commitment_score=0.0`, not confirmed, matching CALL-E's own
+  `final_position: "declined_or_withdrawn"` exactly
+  (`real_call_validation/call_3_raw.json`).
+- A mid-call opt-out was detected and written to the permanent do-not-call
+  list immediately, on a real call, for the first time
+  (`real_call_validation/call_4_raw.json`).
+- A firm-yes call initially scored a neutral 0.50 (just under threshold)
+  because a concrete ETA phrase matched no firm-language marker; fixed in
+  `mobilize/core/commitment.py` and re-verified against the same call
+  (`real_call_validation/call_1_raw.json`).
+
+Two earlier smoke-test calls from day-1 development are also still cited,
+with their limitations disclosed:
 
 - `mobilize/artifacts/smoketest_1_result.json` — one real call, `firm_yes`,
-  commitment score 0.71, full transcript included. Its own provenance note
-  flags an unresolved gap: the recorded `call_id` is CALL-E's call-task ID,
-  not a billing-record ID, and can't be reconciled against the provider's
-  billing dashboard because the raw `recipients[].attempts[]` array was
-  never captured.
+  commitment score 0.71, full transcript included. Its `call_id` has since
+  been reconciled against CALL-E's billing record by re-polling the live
+  call (see its own provenance note): confirmed to be the same event.
 - `mobilize/artifacts/smoketest_2_result.json` — one real call through the
-  full `mobilize()` pipeline (dispatcher + ledger + real transport),
-  `soft_yes` at 0.54, correctly refused (below the 0.55 confirmation
-  threshold). Its provenance note documents that no transcript, call_id, or
-  raw status was saved for this call, and corrects an earlier false claim in
-  `devpost_submission.md` that the transcript "is committed in the repo."
-
-See `mobilize/artifacts/devpost_submission.md` (search "Correction (12
-September 2026 review)") for the full, corrected account.
+  full `mobilize()` pipeline, `soft_yes` at 0.54, correctly refused (below
+  the 0.55 confirmation threshold). No call-task ID was ever saved for this
+  one, and its provenance note documents that this specific gap is
+  permanent, not something further investigation resolves.
 
 ## 2. Matched policy report, raw trial data, assumptions, reproduction
 
