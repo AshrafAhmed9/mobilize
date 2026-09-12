@@ -58,7 +58,7 @@ uploaded via `/api/registry/upload`.** `REGISTRY_SOURCE_MARKER_PATH` records
 provenance (`"uploaded"` vs. sample-default) but the reset endpoint does not
 currently consult that marker before deleting — this is documented, not
 silently patched, because changing that endpoint's behavior is outside this
-task's lane (dashboard changes here are additive-only) and because the
+task's scope (dashboard changes here are additive-only) and because the
 correct fix (e.g. refuse to reset an uploaded registry without a second
 confirmation, or write resets to a separate namespace) is itself a judgment
 call about product behavior, not a test-and-docs gap.

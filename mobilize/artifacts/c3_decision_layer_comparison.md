@@ -1,7 +1,10 @@
 # C3: decision-layer comparison on captured calls
 
-**Version: C3-v1.** Owner: Lane C. Depends on C1 (done) and C2 (not yet
-producing a labeled corpus — see disclosure below).
+This is the first version of this comparison. It depends on the C1 annotation
+rubric and fixture corpus (`mobilize/artifacts/c1_annotation_rubric.md`,
+`mobilize/tests/test_c1_final_intent_corpus.py`), which is complete, and on
+real captured call data from C2, which does not yet exist as a labeled corpus
+(see disclosure below).
 
 ## What this is, and what it is not
 
@@ -12,17 +15,17 @@ independent human-assigned ground-truth label
 (`expect_contact_outcome`/`expect_decision_reason`), run through the real
 production `_to_call_result` (`mobilize/transports/calle.py`).
 
-**This is C1's fixture corpus, not real C2 call data.** As of 2026-09-12,
-C2 (Ashraf-owned, real controlled calls through the dispatcher) has not
-produced a labeled corpus — only two thin historical smoketest calls exist,
-neither labeled to the standard this comparison needs. The plan's acceptance
-criterion ("captured payloads through the production conversion function")
-is satisfied here because C1's fixtures already *are* captured
-CALL-E-API-shaped payloads run through the real production conversion
-function, independently labeled — but they are constructed fixtures, not
-recordings of real phone calls. When C2 produces real call data, re-run this
-as a new version (C3-v2+); do not overwrite this file to imply real-call
-validation it doesn't have.
+**This is the C1 fixture corpus, not real call data.** As of 2026-09-12,
+real controlled calls through the dispatcher have not produced a labeled
+corpus — only two thin historical smoketest calls exist, neither labeled to
+the standard this comparison needs. The acceptance criterion ("captured
+payloads through the production conversion function") is satisfied here
+because the C1 fixtures already *are* captured CALL-E-API-shaped payloads
+run through the real production conversion function, independently labeled
+— but they are constructed fixtures, not recordings of real phone calls.
+When real call data produces a labeled corpus, re-run this comparison as a
+new version; do not overwrite this file to imply real-call validation it
+doesn't have.
 
 Reproducibility: `mobilize/tests/test_c3_decision_layer_comparison.py`,
 `test_reproducible_across_runs`, asserts running all 47 cases through all 4
@@ -59,8 +62,8 @@ agreement).
 standalone layers is L1's affirmation wordlist. It reuses
 `_RECIPIENT_AFFIRMATION_RE` verbatim rather than a wordlist invented for
 this comparison — that regex predates this task (it's production's own
-"is there affirmative language on the page" token list, written for C1/dev
-cases before HELD_OUT_CASES was consulted). No threshold in this file was
+"is there affirmative language on the page" token list, written for the
+dev cases before HELD_OUT_CASES was consulted). No threshold in this file was
 picked or adjusted by looking at HELD_OUT_CASES results.
 
 ## Results (47 cases, actual run output)
@@ -187,7 +190,7 @@ real judgment about what the recipient said.
 
 ### 3. Where the combined rule (L4) correctly rejects and BOTH provider and local components matter — no avoidable-rejection cases found
 
-Checked explicitly for the case the task asks to surface honestly: a case
+Checked explicitly for the case worth surfacing honestly: a case
 where L4 (both signals combined) incorrectly rejects something that was
 actually a genuine agreement. **No such case exists in this corpus.** Every
 case where L4 lands as non-agreement has `truth = False` in the table above
@@ -201,7 +204,7 @@ attribution gap on close variants) where L4 **false-accepts** a third
 party's or a quoted/reported "yes" that isn't the recipient's own current
 commitment, because neither `final_position` nor the local affirmation
 regex has any notion of who is being quoted. This is a false-accept
-ceiling, not an avoidable-rejection one — stated honestly rather than
+ceiling, not an avoidable-rejection one — stated as measured rather than
 manufacturing a rejection example that doesn't exist in this data.
 
 ### 4. Composite picture
@@ -222,8 +225,8 @@ in §3.
 
 ## On the retired "+6.9 points" ablation framing
 
-The task asks this evaluation to explicitly *not* reintroduce the earlier
-"CALL-E contributes +6.9 points" causal-ablation framing and to flag it if
+This evaluation deliberately does not reintroduce the earlier
+"CALL-E contributes +6.9 points" causal-ablation framing, and checks whether it's
 still present in `mobilize/artifacts/devpost_submission.md` or `README.md`.
 Checked both files (`grep -rn "6\.9\|ablation"`): **neither file currently
 contains that framing** — it appears to have already been removed or never
@@ -246,8 +249,8 @@ narrower claim.
   comparison, and no threshold here was chosen after looking at
   HELD_OUT_CASES results (see Threshold discipline above).
 - This is a comparison of decision layers on fixture payloads shaped like
-  captured calls, not a validation against real recipients. Re-run as
-  C3-v2 against real C2 data before treating any number here as evidence
+  captured calls, not a validation against real recipients. Re-run
+  against real captured call data before treating any number here as evidence
   about real-world call outcomes.
 
 ## Final suite status

@@ -108,39 +108,6 @@ fabricated "human caller made N calls in T minutes" statistic — no such
 measurement exists in this repo, and inventing one would violate F5's
 requirement not to benchmark an imagined competitor.
 
-## 3. Documented external competitors (from prior contest research, not new benchmarks)
-
-From `/Users/ashraf/.claude/plans/devpost-join-a-hackathon-zippy-panda.md`
-(competitor scan performed during hackathon research, not a lab benchmark of
-mobilize):
-
-- **#218 `standby`** — a *deliberately sequential* shift-fill cascade that
-  explicitly argues, by name, that parallelism is the wrong design for
-  filling a single slot. That's a real, documented counter-position, and the
-  argument above (throughput under a deadline, over a pool bigger than one
-  slot) is the direct answer to it — for a single slot with no deadline
-  pressure, sequential's call-efficiency edge shown in B1 may well be the
-  better tradeoff; mobilize's parallel design earns its keep specifically
-  when the pool is larger than one and the deadline is tight.
-- **#296 `raktdaan`** — a real-world blood-donor recall program with
-  *measured* field data (62,762 manual calls, 43% reached, 75.8% stated yes,
-  9.18% actual donation/show-up). This is the closest thing to an external
-  ground truth for the stated-yes-vs-actual-showup gap this project targets:
-  a 75.8% stated-yes rate collapsing to a 9.18% real show-up rate is a much
-  larger gap than anything in mobilize's synthetic harness, and it's real
-  program data, not a simulation — it supports the *problem* (naive stated-
-  yes trust badly overstates turnout) but says nothing about mobilize's own
-  measured accuracy, since raktdaan is a manual, non-mobilize program.
-- **#298 `blood-bank-dispatch`** — parallel fan-out like mobilize, but it
-  enquires of institutions with a fixed question set and no stopping rule;
-  it isn't a recruitment/commitment-calibration system and there's no
-  comparable metric to benchmark against here.
-
-None of these three provide a runnable benchmark comparable to the B0/B1
-numbers above — they're cited only where they bear directly on the problem
-framing or on a named competing design choice, per F5's instruction not to
-treat documented availability as proof of measured behavior.
-
 ## Summary
 
 - Against a standard quota dialer that calls everyone: clear win — same or
@@ -157,5 +124,4 @@ treat documented availability as proof of measured behavior.
   than one slot, where concurrent wave dispatch needs a small, roughly
   constant number of round-trips instead of one round-trip per contact.
 - No fabricated competitor benchmark was used anywhere above; every number
-  traces to `benchmark_audit_b0.md`, `matched_policy_experiment_b1.md`, or
-  the named external plan-file citations.
+  traces to `benchmark_audit_b0.md` or `matched_policy_experiment_b1.md`.

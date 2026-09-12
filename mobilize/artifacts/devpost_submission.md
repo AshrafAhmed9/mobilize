@@ -135,7 +135,7 @@ windows all run before dispatch, on by default, persisted across
 invocations. A mid-call "don't contact me again" is detected and written to
 a permanent do-not-call list immediately.
 
-**300 tests collect (295 pass, 3 documented as known gaps via `xfail`, 2 `xpass`) from a clean install** (`.venv/bin/python -m pytest mobilize/tests/ -q`).
+**315 tests collect (310 pass, 3 documented as known gaps via `xfail`, 2 `xpass`) from a clean install** (`.venv/bin/python -m pytest mobilize/tests/ -q`).
 
 ## What I learned
 

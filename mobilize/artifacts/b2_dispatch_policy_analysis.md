@@ -1,6 +1,6 @@
-# B2 — Dispatch policy analysis: retain and document
+# Dispatch policy analysis: retain and document
 
-Owner: Lane B. No changes to `mobilize/core/planner.py`, `mobilize/core/dispatcher.py`,
+No changes to `mobilize/core/planner.py`, `mobilize/core/dispatcher.py`,
 or `mobilize/core/commitment.py` in this task. Additive-only work: one new test
 file (`mobilize/tests/test_b2_planner_invariants.py`, 9 tests, all passing)
 that pins the current planner's behavior with exact hand-worked examples and
@@ -44,8 +44,8 @@ constrained optimization`, lines ~152-157) is reasonably careful — it says
 itself (calibration is correctly scoped to `commitment.py`'s stated-yes
 scoring, a separate module). One place overclaims informally: line 513,
 in the "what was cut" section, calls it "the planner's optimizer" in
-passing. Flagging for whichever lane owns README.md — not editing it
-myself, per lane discipline. It's a minor wording issue (the "optimizer"
+passing. Flagging as a follow-up for README.md rather than editing it
+here, to keep this change additive-only. It's a minor wording issue (the "optimizer"
 framing is defensible for the narrow sub-problem it solves), not a
 substantive correctness claim, but "optimizer" without qualification
 invites exactly the overclaim this task exists to catch.
@@ -75,7 +75,7 @@ latency, and nothing in the current codebase measures whether that
 latency matters more than the calls it saves for a given need's deadline.
 This is precisely B1's own conclusion: no policy dominates.
 
-**3. A structural lane-discipline constraint, not just a data gap: an
+**3. A structural scoping constraint, not just a data gap: an
 additive planner-only change can't actually reach production without
 touching `dispatcher.py`'s wave loop.** `plan_wave` is called from
 `dispatcher.py`'s wave loop, which this task is explicitly forbidden from
@@ -143,7 +143,7 @@ short by pool exhaustion or `max_wave_size`. There is no natural-language
 explanation surfaced anywhere today (e.g. "called N people because
 priors were weak and margin required 1.3x"); adding one would be a small,
 genuinely additive UI/logging change with no policy risk, and is a
-reasonable follow-up for whichever lane owns dashboard/CLI output — not
+reasonable follow-up for dashboard/CLI output — not
 in scope here since it touches no dispatch logic.
 
 ## Sensitivity analysis

@@ -1,9 +1,10 @@
-# Data-flow inventory (A4)
+# Data-flow inventory
 
 Scope: `mobilize/app/dashboard.py`, `mobilize/app/cli.py`, `mobilize/mcp/server.py`,
 `mobilize/core/registry.py`, `mobilize/core/validation.py`. Threat model matches the
 product as built: a single-operator, localhost-bound tool with no auth layer, not a
-multi-tenant hosted service (that's E2, explicitly out of scope here).
+multi-tenant hosted service (public hosting is covered separately in
+`mobilize/artifacts/e2_public_mode.md` and explicitly out of scope here).
 
 ## What's stored, where, how long, who can read it
 
@@ -72,7 +73,8 @@ by this codebase.
 ## Not in scope / explicitly deferred
 
 - Public hosted deployment, recipient authorization for a live mode, credit-abuse
-  protection under exposure, and any new auth layer -- these are E2's job, not A4's.
+  protection under exposure, and any new auth layer -- these belong to the public-mode
+  work in `e2_public_mode.md`, not this inventory.
   This product remains deliberately localhost-bound; no change here makes it safe to
   bind to `0.0.0.0`.
 - Legal compliance: the four governance rules (do-not-call, cooldown, fatigue,

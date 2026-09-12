@@ -4,7 +4,7 @@ Frozen at authoring time, before any case in `mobilize/tests/test_c1_final_inten
 was run against production code. Categories are not adjusted after seeing failures;
 a genuine gap found later is recorded as a finding, not used to redraw a boundary here.
 
-One author (C lane) wrote both the dev and held-out sets — there is no second
+One author wrote both the dev and held-out sets — there is no second
 annotator, so there is no disagreement rate to report (N/A, stated once here rather
 than repeated per case). The two sets are kept in physically separate lists in the
 test file and the held-out set was not consulted while tuning expectations against
@@ -26,7 +26,7 @@ where relevant, `outcome`/`commitment_score` band) via `_to_call_result`
 | unavailable_evidence | No transcript, no completed task signal, or the call never connected | `no_contact` or `missing_evidence` |
 | unsupported_speech | Text present but not itself the recipient's own commitment (reported speech, quoted third party, bot-only affirmation, wrong person) | never `agreement` |
 
-## Checklist coverage (from EXECUTION_PLAN.md C1)
+## Checklist coverage
 
 Firm yes; simple yes; hedge; polite noncommitment; genuine refusal; yes-then-retraction;
 no-then-final-agreement; interrupted/unfinished conversation; negation scope; reported

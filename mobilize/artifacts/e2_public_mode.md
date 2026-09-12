@@ -19,8 +19,8 @@ refused, but the real guarantee is structural: the import doesn't exist).
   long-lived deployment can't grow unbounded. Upload validation reuses the
   real `load_registry_csv` (same error text a coordinator would see in the
   real dashboard).
-- `GET /api/scenarios`, `POST /api/run` — runs one of the four E1 fixture
-  scenarios (`success`, `refusal`, `opt_out`, `ambiguity`) through the real
+- `GET /api/scenarios`, `POST /api/run` — runs one of the four fixture
+  scenarios documented in `e1_platform_and_reset.md` (`success`, `refusal`, `opt_out`, `ambiguity`) through the real
   `mobilize()` dispatcher and returns its actual progress trace, not a
   canned screen. Each run gets its own temp ledger and mobilization id
   (from `run_fixture_scenario` itself), so concurrent sessions can't
@@ -35,7 +35,7 @@ import inspection, not just a mock), cold start, repeat session/reconnect,
 upload validation (good/bad/empty CSV), unknown-session and unknown-scenario
 error visibility, and concurrent sessions not colliding.
 
-Full suite: 310 passed, 3 xfailed, 2 xpassed (was 295/3/2 before this lane;
+Full suite: 310 passed, 3 xfailed, 2 xpassed (was 295/3/2 before this work;
 +15 new tests, zero regressions).
 
 ## Run it locally
@@ -50,7 +50,7 @@ during judging.
 
 ## What remains for actual public hosting
 
-Out of scope for this lane per the task's scope limit — needs Ashraf's
+Out of scope here per this task's scope limit — needs Ashraf's
 authorization and a hosting/DNS/TLS decision, not more engineering here:
 
 - A hosting account and deploy step (Fly.io / Render / a container host —
@@ -60,6 +60,6 @@ authorization and a hosting/DNS/TLS decision, not more engineering here:
   provider credential) in its environment at all, as an operational check
   on top of the code-level guarantee above.
 - A decision on whether to also publish a pinned/downloadable build as an
-  independent judge-reproduction path (EXECUTION_PLAN E2 mentions this;
+  independent judge-reproduction path (mentioned in the execution plan;
   not built here since it's a packaging/distribution step, not a runtime
   behavior).

@@ -97,18 +97,17 @@ Both domains exist and are exercised by dedicated isolation tests:
 - Sample runs: `mobilize/artifacts/d4_sample_runs.md` /
   `mobilize/artifacts/d4_sample_runs.py`.
 
-**Practitioner outreach: pending.** Per `mobilize/artifacts/submission_readiness.md`,
-"Another team has actual users" (intended-practitioner task observation) is
-listed as **Pending**, with "None collected in this review." No practitioner
-feedback has been gathered as of this writing.
+**Practitioner outreach: pending.** No intended-practitioner task
+observation has been collected as of this writing. No practitioner
+feedback has been gathered.
 
 ## 6. Attendance / calibration evidence
 
-**Pending.** Per `mobilize/artifacts/submission_readiness.md`, "Another team
-demonstrates completed outcomes" (observed attendance + coordinator
-handoff) is listed as **Pending** — "No observed attendance dataset
-verified." No real-world attendance or calibration data has been observed
-yet; the matched-policy numbers in section 2 are simulation-only.
+**Pending.** No real-world attendance or calibration data has been
+observed yet; the matched-policy numbers in section 2 are simulation-only.
+The mechanism to record real observed attendance exists and is tested
+(`mobilize/core/registry.py::record_attendance`, `mobilize/tests/test_registry.py`),
+but no actual mobilization has produced attendance data to run through it.
 
 ## 7. Public rehearsal, source revision, clean-install
 
@@ -125,6 +124,19 @@ yet; the matched-policy numbers in section 2 are simulation-only.
   committed.
 - Clean-install instructions: `./run.sh` — creates the venv on first run,
   reuses it after, no manual activation or pip install required.
+
+## 8. Independent rehearsal (informal)
+
+- `mobilize/artifacts/f6_judge_rehearsal.md`: a friend with no prior
+  exposure to the project ran it unguided from the public repo and
+  succeeded without help, and reacted positively to the concept. This is
+  real signal that setup and the core workflow don't require hand-holding.
+- **What it is not:** the full five-task comprehension check
+  (`validation_protocol.md` Part E) — whether an unguided user correctly
+  distinguishes simulated from real, understands a specific refusal, or
+  can reproduce a piece of evidence from source was not specifically
+  tested. Labeled accordingly in the artifact; not claimed as a completed
+  independent judge rehearsal.
 
 ## Full-suite baseline
 

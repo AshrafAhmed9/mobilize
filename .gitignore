@@ -18,3 +18,12 @@ COMPETITION.md
 EXECUTION_PLAN.md
 PLAN_REVIEW.md
 AGENTS.md
+
+# Production/process working files -- useful to Ashraf, not for a judge
+# browsing the repo. Real evidence (benchmarks, real-call transcripts,
+# evidence index) stays tracked; these are the "how it was made" layer.
+mobilize/artifacts/demo_video_script.md
+mobilize/artifacts/storyboard.html
+mobilize/artifacts/submission_readiness.md
+mobilize/artifacts/final_contribution_manifest.md
+mobilize/artifacts/validation_protocol.md

@@ -734,66 +734,113 @@ _PAGE = """
 <meta charset="utf-8">
 <title>mobilize</title>
 <style>
+  /* mobilize -- dispatch console. A warm, low-glare instrument panel, not
+     another blue SaaS dashboard: this thing exists to be read fast under a
+     deadline, not to look impressive in a screenshot. */
+  :root {
+    --bg: #0c0d0d;
+    --panel: #16181a;
+    --panel-alt: #101213;
+    --border: #2a2c2b;
+    --ink: #f2efe8;
+    --muted: #9a9488;
+    --faint: #5c584e;
+    --accent: #e08838;
+    --accent-strong: #c76f26;
+    --confirmed: #5fbf72;
+    --soft: #dcb130;
+    --danger: #e0645a;
+    --mono: "SF Mono", "JetBrains Mono", ui-monospace, Menlo, monospace;
+    --sans: -apple-system, "SF Pro Text", "Segoe UI", sans-serif;
+  }
   * { box-sizing: border-box; }
-  body { background: #0b0e14; color: #e6e6e6; font-family: -apple-system, "SF Pro Text", "Segoe UI", sans-serif; padding: 24px; max-width: 1100px; margin: 0 auto; }
-  h1 { font-size: 20px; font-weight: 700; color: #fff; margin-bottom: 4px; }
-  .subtitle { color: #9ca3af; font-size: 13px; margin-bottom: 20px; }
-  .panel { background: #10141c; border: 1px solid #232a38; border-radius: 10px; padding: 16px; margin-bottom: 16px; }
-  .panel h2 { font-size: 13px; text-transform: uppercase; letter-spacing: 0.04em; color: #9ca3af; margin: 0 0 12px 0; }
-  label { display: block; font-size: 12px; color: #9ca3af; margin: 10px 0 4px; }
-  input, textarea { width: 100%; background: #171c26; color: #e6e6e6; border: 1px solid #2a3140; border-radius: 6px; padding: 8px 10px; font-family: inherit; font-size: 13px; }
-  textarea { font-family: "SF Mono", monospace; font-size: 11px; height: 90px; }
-  .row { display: flex; gap: 12px; }
-  .row > div { flex: 1; }
-  button { background: #2563eb; color: #fff; border: none; border-radius: 6px; padding: 9px 16px; cursor: pointer; font-weight: 600; font-size: 13px; margin-top: 12px; }
-  button:hover { background: #1d4ed8; }
-  button.secondary { background: #232a38; }
-  button.secondary:hover { background: #2a3140; }
-  button:disabled { opacity: 0.5; cursor: not-allowed; }
+  body { background: var(--bg); color: var(--ink); font-family: var(--sans); padding: 28px 24px 64px; max-width: 1100px; margin: 0 auto; }
+  h1 {
+    font-family: var(--mono); font-size: 15px; font-weight: 600; color: var(--ink);
+    text-transform: uppercase; letter-spacing: 0.16em; margin: 0 0 6px; display: flex; align-items: center; gap: 9px;
+  }
+  h1::before { content: ''; width: 7px; height: 7px; border-radius: 50%; background: var(--accent); box-shadow: 0 0 0 3px rgba(224,136,56,0.18); flex: 0 0 auto; }
+  .subtitle { color: var(--muted); font-size: 13px; line-height: 1.5; max-width: 62ch; margin-bottom: 18px; }
+  .panel { background: var(--panel); border: 1px solid var(--border); border-radius: 7px; padding: 18px 20px; margin-bottom: 14px; }
+  .panel h2 {
+    font-family: var(--mono); font-size: 11px; text-transform: uppercase; letter-spacing: 0.09em;
+    color: var(--faint); margin: 0 0 14px; padding-bottom: 10px; border-bottom: 1px solid var(--border);
+    display: flex; align-items: center; gap: 8px;
+  }
+  label { display: block; font-size: 12px; color: var(--muted); margin: 12px 0 5px; }
+  input, textarea, select {
+    width: 100%; background: var(--panel-alt); color: var(--ink); border: 1px solid var(--border);
+    border-radius: 4px; padding: 8px 10px; font-family: inherit; font-size: 13px;
+  }
+  input:focus, textarea:focus, select:focus { outline: none; border-color: var(--accent); }
+  textarea { font-family: var(--mono); font-size: 11px; height: 90px; }
+  .row { display: flex; gap: 12px; flex-wrap: wrap; }
+  .row > div { flex: 1; min-width: 140px; }
+  button {
+    background: var(--accent); color: #14100a; border: none; border-radius: 4px; padding: 9px 16px;
+    cursor: pointer; font-weight: 700; font-size: 12.5px; margin-top: 14px; letter-spacing: 0.01em;
+  }
+  button:hover { background: var(--accent-strong); }
+  button.secondary { background: transparent; color: var(--muted); border: 1px solid var(--border); }
+  button.secondary:hover { color: var(--ink); border-color: var(--faint); }
+  button:disabled { opacity: 0.45; cursor: not-allowed; }
   table { width: 100%; border-collapse: collapse; font-size: 12px; }
-  th { text-align: left; color: #9ca3af; font-weight: 600; padding: 6px 8px; border-bottom: 1px solid #232a38; }
-  td { padding: 6px 8px; border-bottom: 1px solid #171c26; }
-  .badge { display: inline-block; padding: 1px 6px; border-radius: 4px; font-size: 10px; font-weight: 700; }
-  .badge.eligible { background: #14301f; color: #4ade80; }
-  .badge.ineligible { background: #301414; color: #f87171; }
-  #map { display: grid; grid-template-columns: repeat(10, 1fr); gap: 6px; margin: 12px 0; }
-  .node { width: 100%; aspect-ratio: 1; border-radius: 50%; background: #2a3140; transition: all 0.3s; }
-  .node.dialing { background: #f59e0b; animation: pulse 0.8s infinite; }
-  .node.firm_yes { background: #22c55e; }
-  .node.soft_yes { background: #eab308; }
-  .node.no, .node.no_answer, .node.failed { background: #3f4656; }
-  @keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: 0.4; } }
-  #log { background: #0d1017; border-radius: 6px; padding: 10px; height: 180px; overflow-y: auto; font-size: 12px; font-family: "SF Mono", monospace; }
+  th { text-align: left; color: var(--faint); font-weight: 600; padding: 6px 8px; border-bottom: 1px solid var(--border); font-family: var(--mono); font-size: 10.5px; text-transform: uppercase; letter-spacing: 0.05em; }
+  td { padding: 6px 8px; border-bottom: 1px solid var(--panel-alt); font-variant-numeric: tabular-nums; }
+  .badge { display: inline-block; padding: 1px 7px; border-radius: 3px; font-size: 10px; font-weight: 700; font-family: var(--mono); }
+  .badge.eligible { background: rgba(95,191,114,0.14); color: var(--confirmed); }
+  .badge.ineligible { background: rgba(224,100,90,0.14); color: var(--danger); }
+  #map { display: grid; grid-template-columns: repeat(10, 1fr); gap: 7px; margin: 14px 0; }
+  .node { width: 100%; aspect-ratio: 1; border-radius: 50%; background: var(--panel-alt); border: 1px solid var(--border); transition: all 0.3s; }
+  .node.dialing { background: var(--accent); border-color: var(--accent); animation: pulse 0.8s infinite; }
+  .node.firm_yes { background: var(--confirmed); border-color: var(--confirmed); }
+  .node.soft_yes { background: var(--soft); border-color: var(--soft); }
+  .node.no, .node.no_answer, .node.failed { background: var(--panel-alt); border-color: var(--faint); }
+  @keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: 0.45; } }
+  .map-legend { display: flex; gap: 16px; flex-wrap: wrap; font-size: 11px; color: var(--muted); margin: -4px 0 12px; }
+  .map-legend span { display: inline-flex; align-items: center; gap: 6px; }
+  .map-legend i { width: 8px; height: 8px; border-radius: 50%; display: inline-block; }
+  .map-legend i.dialing { background: var(--accent); } .map-legend i.firm_yes { background: var(--confirmed); }
+  .map-legend i.soft_yes { background: var(--soft); } .map-legend i.no { background: var(--faint); }
+  #log {
+    background: var(--panel-alt); border: 1px solid var(--border); border-radius: 5px; padding: 12px;
+    height: 180px; overflow-y: auto; font-size: 12px; font-family: var(--mono); line-height: 1.6;
+  }
   .line { padding: 2px 0; }
-  .firm_yes { color: #22c55e; } .soft_yes { color: #eab308; } .no, .no_answer, .failed { color: #6b7280; }
+  .firm_yes { color: var(--confirmed); } .soft_yes { color: var(--soft); } .no, .no_answer, .failed { color: var(--faint); }
   #results { font-size: 13px; }
-  #results .confirmed-row { display: flex; justify-content: space-between; padding: 6px 0; border-bottom: 1px solid #171c26; }
-  .pill { background: #1e293b; border-radius: 999px; padding: 2px 10px; font-size: 11px; color: #93c5fd; }
-  .summary { display: flex; gap: 24px; margin: 12px 0; }
-  .summary .stat { text-align: center; }
-  .summary .stat .n { font-size: 22px; font-weight: 700; color: #fff; }
-  .summary .stat .l { font-size: 10px; color: #9ca3af; text-transform: uppercase; }
-  .msg { font-size: 12px; padding: 8px; border-radius: 6px; margin-top: 8px; }
-  .msg.error { background: #301414; color: #f87171; }
-  .msg.ok { background: #14301f; color: #4ade80; }
-  .msg.warn { background: #3a2a0d; color: #fbbf24; }
-  .exc-line { padding: 6px 0; border-bottom: 1px solid #171c26; font-size: 12px; }
-  .exc-line .exc-what { color: #fbbf24; font-weight: 600; }
-  .exc-line .exc-guidance { color: #9ca3af; margin-top: 2px; }
+  #results .confirmed-row { display: flex; justify-content: space-between; padding: 7px 0; border-bottom: 1px solid var(--panel-alt); }
+  .pill { background: var(--panel-alt); border: 1px solid var(--border); border-radius: 4px; padding: 2px 9px; font-size: 10.5px; font-family: var(--mono); color: var(--muted); }
+  .summary { display: flex; gap: 28px; margin: 14px 0; flex-wrap: wrap; }
+  .summary .stat { text-align: left; }
+  .summary .stat .n { font-family: var(--mono); font-size: 24px; font-weight: 700; color: var(--ink); font-variant-numeric: tabular-nums; }
+  .summary .stat .l { font-size: 10px; color: var(--faint); text-transform: uppercase; letter-spacing: 0.06em; margin-top: 2px; }
+  .msg { font-size: 12px; padding: 9px 10px; border-radius: 4px; margin-top: 8px; border: 1px solid transparent; }
+  .msg.error { background: rgba(224,100,90,0.10); color: var(--danger); border-color: rgba(224,100,90,0.25); }
+  .msg.ok { background: rgba(95,191,114,0.10); color: var(--confirmed); border-color: rgba(95,191,114,0.25); }
+  .msg.warn { background: rgba(220,177,48,0.10); color: var(--soft); border-color: rgba(220,177,48,0.25); }
+  .exc-line { padding: 7px 0; border-bottom: 1px solid var(--panel-alt); font-size: 12px; }
+  .exc-line .exc-what { color: var(--soft); font-weight: 600; }
+  .exc-line .exc-guidance { color: var(--muted); margin-top: 2px; }
   .plan-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 10px; margin: 10px 0; font-size: 12px; }
-  .plan-grid .k { color: #9ca3af; font-size: 10px; text-transform: uppercase; }
-  .plan-grid .v { color: #fff; font-size: 14px; font-weight: 600; }
-  .handoff-row { display: flex; justify-content: space-between; align-items: center; padding: 8px 0; border-bottom: 1px solid #171c26; font-size: 12px; }
-  .handoff-row .meta { color: #9ca3af; font-size: 11px; }
-  #mode-banner { display: inline-block; padding: 3px 10px; border-radius: 999px; font-size: 11px; font-weight: 700; letter-spacing: 0.03em; text-transform: uppercase; margin-bottom: 12px; }
-  #mode-banner.rehearsal { background: #1e293b; color: #93c5fd; }
-  #mode-banner.live { background: #301414; color: #f87171; }
+  .plan-grid .k { color: var(--faint); font-size: 10px; text-transform: uppercase; letter-spacing: 0.05em; }
+  .plan-grid .v { color: var(--ink); font-size: 14px; font-weight: 600; font-variant-numeric: tabular-nums; }
+  .handoff-row { display: flex; justify-content: space-between; align-items: center; padding: 8px 0; border-bottom: 1px solid var(--panel-alt); font-size: 12px; }
+  .handoff-row .meta { color: var(--muted); font-size: 11px; }
+  #mode-banner {
+    display: inline-flex; align-items: center; gap: 6px; padding: 4px 10px 4px 8px; border-radius: 3px;
+    font-family: var(--mono); font-size: 10.5px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase;
+    margin-bottom: 14px; border: 1px solid;
+  }
+  #mode-banner::before { content: '●'; font-size: 8px; }
+  #mode-banner.rehearsal { background: rgba(224,136,56,0.10); color: var(--accent); border-color: rgba(224,136,56,0.3); }
+  #mode-banner.live { background: rgba(224,100,90,0.12); color: var(--danger); border-color: rgba(224,100,90,0.35); }
 </style>
 </head>
 <body>
   <h1>mobilize</h1>
-  <div class="subtitle">Load your registry, describe who you need, watch it fill. Free rehearsal against your own list by default -- no real calls unless you ask for them.</div>
-  <div id="mode-banner" class="rehearsal">Rehearsal mode -- no calls placed, nothing saved yet</div>
+  <div class="subtitle">Load a registry, describe who you need, and watch the wave go out. Every run starts in rehearsal -- nothing dials out until you ask for it.</div>
+  <div id="mode-banner" class="rehearsal">rehearsal -- no calls placed, nothing saved</div>
 
   <div class="panel">
     <h2>1 · Registry</h2>
@@ -834,6 +881,12 @@ Asha Rao,+15550101001,Asia/Kolkata"></textarea>
 
   <div class="panel">
     <h2>3 · Live dispatch</h2>
+    <div class="map-legend">
+      <span><i class="dialing"></i>dialing</span>
+      <span><i class="firm_yes"></i>firm yes</span>
+      <span><i class="soft_yes"></i>soft yes -- not counted</span>
+      <span><i class="no"></i>no / no answer</span>
+    </div>
     <div id="map"></div>
     <div id="log"></div>
   </div>

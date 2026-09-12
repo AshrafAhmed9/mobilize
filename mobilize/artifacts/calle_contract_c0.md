@@ -1,4 +1,4 @@
-# CALL-E contract: measured vs. documented (C0)
+# CALL-E contract: measured vs. documented
 
 Date: 12 September 2026. GET-only investigation, no live API access in this
 sandbox (no `CALLE_API_KEY`, no network calls made). Everything under
@@ -101,9 +101,8 @@ these into typed exceptions (`CalleAuthenticationError` for 401/403,
 only as a generic `httpx.HTTPStatusError`, with none of the structured
 `code` available to the dispatcher for differentiated handling (e.g.
 distinguishing a permanent `unsupported_region` from a transient
-`rate_limit_exceeded`). This is a real, currently-unaddressed gap, not
-something C0 fixes — flagging for a future lane since it's outside this
-verification task's scope.
+`rate_limit_exceeded`). This is a real, currently-unaddressed gap — flagged
+here as a follow-up since it's outside this verification task's scope.
 
 **Idempotency.** `create()` accepts `idempotency_key` as a header
 passthrough on the SDK side; mobilize sends the same via
