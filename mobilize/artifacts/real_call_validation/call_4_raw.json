@@ -1,0 +1,70 @@
+{
+  "id": "call_9CL_CJ_bRnomL4EdNwFvAg",
+  "object": "call_task",
+  "status": "completed",
+  "task": "You are calling on behalf of City Hospital about an urgent request: urgent system validation test, please answer honestly. Briefly and politely explain the request, ask whether the recipient can help right now, and if so ask when they can arrive. Identify yourself as an AI assistant at the start of the call. Keep the call under 60 seconds. If they decline or are unable to help, thank them and end the call. If the recipient explicitly asks not to be contacted again or to be removed from the list, acknowledge that clearly and make sure it is captured -- this request will be honored permanently and immediately.",
+  "recipients": [
+    {
+      "id": "rcp_f2d151e3d0975676",
+      "phones": ["[redacted]"],
+      "locale": "en-US",
+      "region": "US",
+      "status": "completed",
+      "structured_result": null,
+      "summary": "The recipient answered, declined to help, and explicitly asked not to be called again about this. The opt-out should be honored; no retry is appropriate.",
+      "attempts": [
+        {
+          "id": "att_d26461c60cf7a619",
+          "phone": "[redacted]",
+          "status": "completed",
+          "started_at": "2026-09-12T13:40:27Z",
+          "completed_at": "2026-09-12T13:41:31Z",
+          "summary": "The recipient answered, declined to help, and explicitly asked not to be called again about this. The opt-out should be honored; no retry is appropriate.",
+          "transcript_turns": [
+            {"offset_seconds": 0, "speaker": "user", "text": "Hello. No."},
+            {"offset_seconds": 0, "speaker": "bot", "text": "Hello,"},
+            {"offset_seconds": 1, "speaker": "bot", "text": "I'm an AI assistant calling on behalf of City Hospital."},
+            {"offset_seconds": 4, "speaker": "bot", "text": "This is an urgent system validation test, so please answer honestly: can you help right now?"},
+            {"offset_seconds": 14, "speaker": "user", "text": "Actually, please don't call me again about this."},
+            {"offset_seconds": 14, "speaker": "bot", "text": "Thank you."},
+            {"offset_seconds": 20, "speaker": "bot", "text": "Okay."},
+            {"offset_seconds": 27, "speaker": "user", "text": "Okay."}
+          ],
+          "provider_call_id": "f8600794ccda469eb4d5a27009cf84d9",
+          "failure_code": null,
+          "failure_message": null
+        }
+      ]
+    }
+  ],
+  "structured_result": {
+    "can_come": "no",
+    "eta_minutes": "unknown",
+    "final_position": "declined_or_withdrawn",
+    "evidence_summary": "The recipient said, \"No,\" and later, \"Actually, please don't call me again about this.\"",
+    "wants_no_further_contact": "yes"
+  },
+  "summary": "The recipient answered, declined to help, and explicitly asked not to be called again about this. The opt-out should be honored; no retry is appropriate.",
+  "task_completed": true,
+  "completion_confidence": {"score": 0.93, "label": "high"},
+  "evidence": [
+    "A live recipient answered the call.",
+    "They declined to help right now.",
+    "They explicitly asked not to be contacted again about this."
+  ],
+  "metadata": {"candidate_id": "c_9e02e8b32194f956"},
+  "failure_code": null,
+  "failure_message": null,
+  "created_at": "2026-09-12T13:39:34.741918Z",
+  "completed_at": "2026-09-12T13:41:47.556574Z",
+  "_our_local_dispatch_result": {
+    "call_id": "call_9CL_CJ_bRnomL4EdNwFvAg",
+    "outcome": "no",
+    "commitment_score": 0.0,
+    "stated_yes": false,
+    "stop_requested": true,
+    "decision_reason": "recipient_declined",
+    "contact_outcome": "refusal",
+    "note": "stop_requested=true was correctly detected from the transcript. Our own governance state file (/tmp/mobilize_real_governance.json) shows the candidate id c_9e02e8b32194f956 was added to the permanent do_not_call list immediately after this call, end-to-end on a real call for the first time -- not just in tests. A retry of this same mobilization was attempted before this call (validation_call_4, no_answer, call_zVYRyTYqpGHXj38_qwk46g) which is a separate real timeout/no-connect, not a scripting issue -- not saved as a separate artifact since it carries no additional information beyond the successful retry here."
+  }
+}

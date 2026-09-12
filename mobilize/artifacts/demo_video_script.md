@@ -1,14 +1,16 @@
 # Demo video script — target 3:00
 
-Lead with the human problem and real audio. Reveal the machinery only after
-the viewer already cares about the outcome.
+Lead with the human problem and the real call transcript. Reveal the
+machinery only after the viewer already cares about the outcome.
 
 ---
 
-## 0:00–0:25 — Cold open, real audio, no code on screen
+## 0:00–0:25 — Cold open, real transcript, no code on screen
 
-Black screen. Play the actual smoketest audio/transcript beat, or read it
-over a simple waveform/caption:
+`smoketest_1_result.json` has a committed text transcript, not a recorded
+audio file — no `.wav`/`.mp3` of this call exists in the repo. Read the
+actual smoketest transcript beat aloud over a simple waveform/caption
+(do not present it as a played recording):
 
 > **Bot:** "I'm an AI assistant calling on behalf of a test lab. The test
 > lab needs urgent help with a quick system test — can you help right now?"
@@ -64,11 +66,11 @@ Cut to a simple text card, spoken plainly:
 Show the terminal output of `python -m mobilize.sim.harness` running, then
 freeze on the results table:
 
-> Calibrated: 94.6% confirmation accuracy
-> Naive (trust every yes): 87.7%
-> Call everyone: 80.2%
+> Calibrated: 93.7% confirmation accuracy
+> Naive (trust every yes): 86.3%
+> Call everyone: 80.0%
 
-> "This isn't a guess. It's measured across 300 simulated mobilizations
+> "This isn't a guess. It's measured across 200 simulated mobilizations
 > with known ground truth — reproducible with one command."
 
 ## 2:15–2:40 — Real calls, real proof
@@ -108,5 +110,7 @@ End card: repo URL, PR URL, "Most Practical Use Case."
   production choice, not a fabricated result: every seed runs the identical
   code against the identical evaluated policy, just against a different
   synthetic population draw.
-- Keep the cold-open audio genuinely from `smoketest_1_result.json` — do
-  not synthesize new lines for the opening hook.
+- Keep the cold-open lines genuinely from `smoketest_1_result.json`'s
+  `transcript` field — do not synthesize new lines for the opening hook.
+  Only the text transcript is committed for this call; there is no audio
+  file to play.

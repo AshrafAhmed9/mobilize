@@ -7,8 +7,8 @@ reproducible from the repo; nothing is estimated or rounded up.
 
 ## Tagline (one line, shown under the project name)
 
-A human coordinator can hold one phone conversation. `mobilize` holds forty
-— and knows which "yes" is real.
+A human coordinator can hold one phone conversation. `mobilize` holds
+several at once — and knows which "yes" is real.
 
 ---
 
@@ -24,9 +24,9 @@ hold one conversation at a time. Industry guidance puts a full manual call
 tree at up to three and a half hours to propagate, with roughly a third of
 people missed on the first pass.
 
-CALL-E removes that constraint entirely — software can hold forty
-conversations at once. But once you're calling forty people simultaneously,
-a second problem shows up that nobody has built for: **a stated "yes" is not
+CALL-E removes that constraint entirely — software can hold multiple
+conversations at once instead of one. But once you're calling several
+people in parallel, a second problem shows up: **a stated "yes" is not
 a confirmation.** People agree to be polite and then don't show up.
 Acquiescence bias is real and measured in volunteer and donor recruitment.
 If you just count stated yeses, you fill your quota with people who never
@@ -78,7 +78,7 @@ synthetic population whose *true* show-up probability is known but hidden
 from the system. Identical code path either way.
 
 That simulator is what made rigorous validation possible on a 20-free-call
-budget: **300 simulated mobilizations, zero cost, reproducible with one
+budget: **200 simulated mobilizations, zero cost, reproducible with one
 command.**
 
 ## Challenges I ran into
@@ -94,13 +94,15 @@ measures it against baselines:
 
 | Policy | Confirmation accuracy | Calls used |
 |---|---|---|
-| **Calibrated (mobilize)** | **94.6%** | 11.0 |
-| Trust every stated yes | 87.7% | 6.8 |
-| Call the entire pool | 80.2% | 40.0 |
+| **Calibrated (mobilize)** | **93.7%** | 10.62 |
+| Trust every stated yes | 86.3% | 7.04 |
+| Call the entire pool | 80.0% | 40.00 |
 
 *Confirmation accuracy* = of the people the system believed were confirmed,
 what fraction would actually show up. The naive policy fills just as
-reliably — it just fills with people who don't come.
+reliably — it just fills with people who don't come. Measured over 200
+trials (`python -m mobilize.sim.harness`); see
+`mobilize/artifacts/benchmark_audit_b0.md` for the full methodology.
 
 **Three rounds of external code review.** A contributor on CALL-E's
 repository reviewed my PR and found real bugs — three separate times. Among
@@ -120,8 +122,12 @@ zero duplicate dials and zero lost confirmations.
 
 **The second real call landed at 0.54 — just under the 0.55 threshold.** The
 system correctly refused to count it as confirmed. That's the calibration
-model discriminating at a genuine decision boundary on a real conversation,
-not a synthetic one. The transcript is committed in the repo.
+model discriminating at a genuine decision boundary on a real conversation.
+Correction (12 September 2026 review): this section previously claimed the
+transcript for that call "is committed in the repo." That was false —
+`mobilize/artifacts/smoketest_2_result.json` records only the mobilization
+outcome (`outcome`, `commitment_score`, a note), not a transcript, call_id,
+or raw status. No transcript for this call is currently in the repo.
 
 **Consent is enforced in code, not promised in a doc.** Do-not-call,
 cooldowns, contact-fatigue limits, and per-recipient-timezone calling
@@ -129,7 +135,7 @@ windows all run before dispatch, on by default, persisted across
 invocations. A mid-call "don't contact me again" is detected and written to
 a permanent do-not-call list immediately.
 
-**65 tests, all passing from a clean install.**
+**300 tests collect (295 pass, 3 documented as known gaps via `xfail`, 2 `xpass`) from a clean install** (`.venv/bin/python -m pytest mobilize/tests/ -q`).
 
 ## What I learned
 

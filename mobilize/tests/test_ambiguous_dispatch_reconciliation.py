@@ -106,7 +106,13 @@ async def test_unresolved_ambiguity_halts_the_whole_mobilization_on_resume(tmp_p
     result = await mobilize(need, pool, RefusesAnyDispatchTransport(), ledger=ledger, mobilization_id="mob_resume_ambig")
 
     assert not result.filled
-    assert result.ambiguous_candidate_ids == ["c0"]
+    # A2: c1 was genuinely dispatched but the fake transport's poll() never
+    # resolves it, so on this resumed run its in-flight recovery attempt
+    # also times out (RefusesAnyDispatchTransport.poll always returns
+    # None). That must be just as blocking as c0's original dispatch
+    # ambiguity -- a possibly-still-live call for c1 is exactly the kind of
+    # thing a further wave must not be dispatched on top of.
+    assert set(result.ambiguous_candidate_ids) == {"c0", "c1"}
     assert result.waves == []
 
 

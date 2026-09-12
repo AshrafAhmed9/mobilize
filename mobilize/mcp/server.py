@@ -37,6 +37,7 @@ from mobilize.core.ledger import Ledger
 from mobilize.core.policy import GovernancePolicy, load_governance_state
 from mobilize.core.types import Candidate, Need
 from mobilize.core.validation import mask_phone, stable_id_from_phone
+from mobilize.sim.fixture_transport import SCENARIOS, run_fixture_scenario
 from mobilize.sim.population import generate_population
 from mobilize.transports.base import E164_RE, validate_timezone
 from mobilize.transports.simulated import SimulatedTransport
@@ -79,6 +80,26 @@ async def mobilize_simulated(
             for r in result.confirmed
         ],
     }
+
+
+@mcp.tool()
+async def mobilize_fixture(scenario: str) -> dict:
+    """E1: run one deterministic, API-shaped fixture scenario through the
+    real mobilize() dispatcher and the real production _to_call_result
+    translation ladder (transports/calle.py) -- not the SimulatedTransport
+    used by mobilize_simulated, which bypasses that function entirely and
+    cannot generate its retraction/corroboration branches.
+
+    scenario must be one of: 'success', 'refusal', 'opt_out', 'ambiguity'.
+    Zero cost, zero network access -- FixtureTransport never constructs an
+    HTTP client, so this is safe to call freely, unlike mobilize_real. The
+    exact same scenario, run through the exact same shared runner, is also
+    reachable via `python -m mobilize.app.cli --fixture <scenario>` and the
+    dashboard's `/api/fixture/{scenario}` endpoint -- useful for proving the
+    tool response matches what a judge sees in the CLI or dashboard."""
+    if scenario not in SCENARIOS:
+        return {"error": f"Unknown scenario {scenario!r}. Known: {sorted(SCENARIOS)}"}
+    return await run_fixture_scenario(scenario)
 
 
 @mcp.tool()

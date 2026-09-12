@@ -1,0 +1,60 @@
+{
+  "id": "call_Nng1eSQIJwMk5fUDwSD9JA",
+  "object": "call_task",
+  "status": "failed",
+  "task": "You are calling on behalf of City Hospital about an urgent request: urgent system validation test, please answer honestly. Briefly and politely explain the request, ask whether the recipient can help right now, and if so ask when they can arrive. Identify yourself as an AI assistant at the start of the call. Keep the call under 60 seconds. If they decline or are unable to help, thank them and end the call. If the recipient explicitly asks not to be contacted again or to be removed from the list, acknowledge that clearly and make sure it is captured -- this request will be honored permanently and immediately.",
+  "recipients": [
+    {
+      "id": "rcp_98e9b492544d5e5a",
+      "phones": ["[redacted]"],
+      "locale": "en-US",
+      "region": "US",
+      "status": "failed",
+      "structured_result": null,
+      "summary": "The first call did not connect; suggested retry is in about 45 minutes, and you can confirm that time, provide a different retry time, or ask to retry immediately.",
+      "attempts": [
+        {
+          "id": "att_639b956630865fa4",
+          "phone": "[redacted]",
+          "status": "failed",
+          "started_at": "2026-09-12T13:12:06Z",
+          "completed_at": "2026-09-12T13:12:06Z",
+          "summary": "The first call did not connect; suggested retry is in about 45 minutes, and you can confirm that time, provide a different retry time, or ask to retry immediately.",
+          "transcript_turns": [],
+          "provider_call_id": "949d2ccb87b747188e75478d418f28bc",
+          "failure_code": "408",
+          "failure_message": null
+        }
+      ]
+    }
+  ],
+  "structured_result": {
+    "can_come": "unknown",
+    "eta_minutes": "unknown",
+    "final_position": "unclear",
+    "evidence_summary": "No recipient response was captured because the call was not answered.",
+    "wants_no_further_contact": "unknown"
+  },
+  "summary": "The first call did not connect; suggested retry is in about 45 minutes, and you can confirm that time, provide a different retry time, or ask to retry immediately.",
+  "task_completed": false,
+  "completion_confidence": {"score": 0.86, "label": "high"},
+  "evidence": [
+    "The call ended with no answer.",
+    "There was no conversation or voicemail evidence.",
+    "The goal required a live response about whether the recipient could help and any ETA."
+  ],
+  "metadata": {"candidate_id": "c_9e02e8b32194f956"},
+  "failure_code": "call_failed",
+  "failure_message": "calling task status=NO ANSWER (Hangup by: bot)",
+  "created_at": "2026-09-12T13:11:17.963634Z",
+  "completed_at": "2026-09-12T13:12:43.627837Z",
+  "_our_local_dispatch_result": {
+    "call_id": "call_Nng1eSQIJwMk5fUDwSD9JA",
+    "outcome": "no_answer",
+    "commitment_score": 0.0,
+    "stated_yes": false,
+    "decision_reason": "call_or_recipient_failed",
+    "contact_outcome": "no_contact",
+    "note": "Real, unscripted no-answer -- the call was placed for row 3 (retraction script) but the provider never connected (failure_code 408, hung up by bot after no pickup). Repurposed as the row 5 (no-answer) validation case since that is what actually happened; row 3 was retried separately as call_3_raw.json."
+  }
+}

@@ -20,7 +20,39 @@ TRUSTED_CALLE_HOSTS = {"api.heycall-e.com"}
 __all__ = [
     "E164_RE", "validate_e164", "validate_timezone", "validate_trusted_base_url",
     "MOBILIZE_RESULT_SCHEMA", "build_task_prompt", "Transport",
+    "CalleTransportError", "CalleSafeRejectionError", "CalleAmbiguousError",
 ]
+
+
+class CalleTransportError(Exception):
+    """Base class for a CALL-E provider error the transport has explicitly
+    classified by disposition -- as opposed to letting an unclassified
+    httpx/network exception surface and forcing the dispatcher to guess.
+    See the two subclasses for what each disposition means for dispatch
+    accounting (calls_used, ambiguous_candidate_ids, retry behavior)."""
+
+
+class CalleSafeRejectionError(CalleTransportError):
+    """CALL-E explicitly rejected this request before ever placing a call:
+    an authentication/authorization failure (401/403), a rate limit
+    (429 / `rate_limit_exceeded`), or an unsupported-destination / policy
+    rejection (`unsupported_region`, `unsupported_language`, `invalid_phone`,
+    `recipient_blocked`, `policy_violation`, or another 4xx of that shape).
+    In every one of these cases the provider's own response says the call
+    was never queued -- safe to treat exactly like our own pre-flight
+    validation failure: not ambiguous, not counted as a possibly-live call,
+    and not retried automatically (a permanent rejection like a bad phone
+    number or an unsupported region will not succeed on retry; a rate limit
+    needs deliberate backoff, not blind immediate retry)."""
+
+
+class CalleAmbiguousError(CalleTransportError):
+    """Whether CALL-E accepted this request is genuinely unknown: a 5xx
+    (the provider's own infrastructure may have processed the request
+    before failing), a timeout, a connection reset, or any other response
+    shape this transport doesn't recognize. Must be treated as a possibly-
+    live call, exactly like any other ambiguous dispatch failure -- counted
+    toward calls_used and blocking further waves until reconciled."""
 
 
 def validate_trusted_base_url(base_url: str) -> None:

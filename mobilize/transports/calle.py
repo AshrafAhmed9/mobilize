@@ -20,9 +20,11 @@ import unicodedata
 import httpx
 
 from mobilize.core.commitment import calibrated_commitment
-from mobilize.core.types import Candidate, CallOutcome, CallResult, utcnow
+from mobilize.core.types import Candidate, CallOutcome, CallResult, ContactOutcome, DecisionReason, utcnow
 from mobilize.transports.base import (
     MOBILIZE_RESULT_SCHEMA,
+    CalleAmbiguousError,
+    CalleSafeRejectionError,
     build_task_prompt,
     validate_e164,
     validate_trusted_base_url,
@@ -30,6 +32,58 @@ from mobilize.transports.base import (
 
 CALLE_BASE_URL = os.environ.get("CALLE_BASE_URL", "https://api.heycall-e.com")
 TERMINAL_STATUSES = {"completed", "failed", "canceled"}
+
+# APIErrorCode values (calle_contract_c0.md) that mean CALL-E rejected the
+# request outright -- the call was never queued. rate_limit_exceeded is
+# included here (not treated as ambiguous) because a 429 by definition means
+# the request was refused before being accepted, not accepted-then-lost.
+_SAFE_REJECTION_CODES = {
+    "unsupported_region",
+    "unsupported_language",
+    "invalid_phone",
+    "recipient_blocked",
+    "policy_violation",
+    "rate_limit_exceeded",
+    "idempotency_conflict",
+    "result_schema_invalid",
+    "recipient_result_schema_invalid",
+}
+
+
+def _classify_http_error(exc: httpx.HTTPStatusError) -> CalleAmbiguousError | CalleSafeRejectionError:
+    """Turn an httpx.HTTPStatusError into an explicit disposition instead of
+    leaving the dispatcher to treat every non-ValueError exception as
+    ambiguous. Per calle_contract_c0.md, CALL-E's error envelope is
+    `{"error": {"code": ..., "message": ...}}` (APIErrorCode); this parses
+    that where present and otherwise falls back to the HTTP status alone."""
+    response = exc.response
+    status = response.status_code
+    try:
+        body = response.json()
+    except ValueError:
+        body = {}
+    error = (body or {}).get("error") or {}
+    code = error.get("code")
+    message = error.get("message") or response.text or str(exc)
+
+    # Authentication/authorization failures: the request was rejected before
+    # any call could be placed -- a config problem, not an ambiguous one.
+    if status in (401, 403):
+        return CalleSafeRejectionError(
+            f"CALL-E authentication/authorization error ({status}): {message}"
+        )
+    # A rate limit or a recognized 4xx-shaped rejection code: definitely
+    # never queued, so definitely safe -- but distinct from a genuine
+    # pre-flight ValueError, since it came from the provider, not us.
+    if status == 429 or code in _SAFE_REJECTION_CODES:
+        return CalleSafeRejectionError(f"CALL-E rejected the request ({status}, {code}): {message}")
+    if 400 <= status < 500:
+        return CalleSafeRejectionError(f"CALL-E rejected the request ({status}, {code}): {message}")
+    # 5xx (temporary outage) and anything unrecognized: the provider's own
+    # infrastructure may have accepted and begun processing the request
+    # before this response was generated. Genuinely unknown -- must not be
+    # treated as safe.
+    return CalleAmbiguousError(f"CALL-E error ({status}, {code}): {message}")
 
 # structured_result is a provider-authored extraction and can be wrong or
 # stale, especially on a call that didn't cleanly complete -- can_come=="yes"
@@ -227,8 +281,22 @@ class CalleTransport:
         # restart sends this exact same key -- CALL-E returns the original
         # call instead of placing a second one.
         headers = {"Idempotency-Key": idempotency_key[:255]}
-        response = await self._client.post("/v1/calls", json=body, headers=headers)
-        response.raise_for_status()
+        try:
+            response = await self._client.post("/v1/calls", json=body, headers=headers)
+            response.raise_for_status()
+        except httpx.HTTPStatusError as exc:
+            # Classified by disposition (safe rejection vs. genuinely
+            # ambiguous) rather than left as a generic exception -- see
+            # _classify_http_error and calle_contract_c0.md.
+            raise _classify_http_error(exc) from exc
+        except httpx.TimeoutException as exc:
+            # No response at all: whether CALL-E received and started
+            # processing the request before the client gave up is unknown.
+            raise CalleAmbiguousError(f"CALL-E dispatch timed out: {exc}") from exc
+        except httpx.TransportError as exc:
+            # A connection reset, DNS failure, etc. -- same reasoning as a
+            # timeout: the request may have reached CALL-E already.
+            raise CalleAmbiguousError(f"CALL-E dispatch transport error: {exc}") from exc
         payload = response.json()
         call_id = payload["id"]
         self._candidate_by_call_id[call_id] = candidate
@@ -291,6 +359,8 @@ def _to_call_result(call_id: str, call: dict, expected_candidate: Candidate | No
             transcript=[],
             completed_at=utcnow(),
             raw=call,
+            decision_reason=DecisionReason.BINDING_MISMATCH.value,
+            contact_outcome=ContactOutcome.EXECUTION_FAILURE.value,
         )
 
     attempts = recipient.get("attempts") or []
@@ -319,6 +389,7 @@ def _to_call_result(call_id: str, call: dict, expected_candidate: Candidate | No
     # before anything else looks at can_come.
     if call_status in ("failed", "canceled") or recipient.get("status") in ("failed", "canceled"):
         outcome, commitment = CallOutcome.NO_ANSWER, 0.0
+        reason, contact = DecisionReason.CALL_OR_RECIPIENT_FAILED, ContactOutcome.NO_CONTACT
     # CALL-E's own task_completed is a second, independent signal from the
     # structured extraction. If CALL-E itself says the call didn't
     # accomplish its task, a "yes" in structured_result is extraction noise
@@ -329,8 +400,10 @@ def _to_call_result(call_id: str, call: dict, expected_candidate: Candidate | No
     # contradiction" -- see that branch for why.)
     elif task_completed is False:
         outcome, commitment = CallOutcome.NO_ANSWER, 0.0
+        reason, contact = DecisionReason.TASK_INCOMPLETE, ContactOutcome.NO_CONTACT
     elif can_come == "no":
         outcome, commitment = CallOutcome.NO, 0.0
+        reason, contact = DecisionReason.RECIPIENT_DECLINED, ContactOutcome.REFUSAL
     elif can_come == "yes":
         # A "yes" with literally no transcript evidence behind it is
         # inherently suspicious -- either the call never really connected
@@ -338,6 +411,7 @@ def _to_call_result(call_id: str, call: dict, expected_candidate: Candidate | No
         # count it as a confirmation rather than trust an unsupported claim.
         if not transcript:
             outcome, commitment = CallOutcome.NO_ANSWER, 0.0
+            reason, contact = DecisionReason.ABSENT_TRANSCRIPT, ContactOutcome.MISSING_EVIDENCE
         # A confirmation requires CALL-E's OWN affirmative completion
         # signal -- not merely the absence of an explicit False. At this
         # point task_completed can only be True or None (False was already
@@ -347,6 +421,7 @@ def _to_call_result(call_id: str, call: dict, expected_candidate: Candidate | No
         # is trusted.
         elif task_completed is not True:
             outcome, commitment = CallOutcome.NO_ANSWER, 0.0
+            reason, contact = DecisionReason.TASK_COMPLETION_UNCONFIRMED, ContactOutcome.MISSING_EVIDENCE
         # can_come reads any agreement in the call, even a retracted one --
         # it has no notion of what happened LAST. Recognizing that a later
         # statement withdraws an earlier one, in arbitrary phrasing, is a
@@ -360,6 +435,7 @@ def _to_call_result(call_id: str, call: dict, expected_candidate: Candidate | No
         # waved through, exactly like task_completed above.
         elif final_position != "confirmed":
             outcome, commitment = CallOutcome.NO_ANSWER, 0.0
+            reason, contact = DecisionReason.FINAL_POSITION_UNCLEAR, ContactOutcome.MISSING_EVIDENCE
         # Cross-check the structured "yes" against what the recipient
         # actually said. structured_result/evidence_summary are
         # provider-authored extractions and can misread or fabricate a
@@ -373,6 +449,7 @@ def _to_call_result(call_id: str, call: dict, expected_candidate: Candidate | No
         # structurally cannot.
         elif not _recipient_corroborates_commitment(transcript):
             outcome, commitment = CallOutcome.NO_ANSWER, 0.0
+            reason, contact = DecisionReason.MISSING_RECIPIENT_CORROBORATION, ContactOutcome.CONFLICTING_EVIDENCE
         else:
             # Score firmness from the recipient's OWN words (already
             # verified above to contain a real affirmation), not from
@@ -388,8 +465,10 @@ def _to_call_result(call_id: str, call: dict, expected_candidate: Candidate | No
                 evidence=_recipient_text(transcript), candidate_prior_showup_rate=prior_showup_rate
             )
             outcome = CallOutcome.FIRM_YES if commitment >= 0.6 else CallOutcome.SOFT_YES
+            reason, contact = DecisionReason.CONFIRMED, ContactOutcome.AGREEMENT
     else:
         outcome, commitment = CallOutcome.NO_ANSWER, 0.0
+        reason, contact = DecisionReason.AMBIGUOUS_PROVIDER_RESPONSE, ContactOutcome.MISSING_EVIDENCE
 
     return CallResult(
         call_id=call_id,
@@ -402,4 +481,6 @@ def _to_call_result(call_id: str, call: dict, expected_candidate: Candidate | No
         transcript=transcript,
         completed_at=utcnow(),
         raw=call,
+        decision_reason=reason.value,
+        contact_outcome=contact.value,
     )

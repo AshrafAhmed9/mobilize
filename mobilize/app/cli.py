@@ -24,6 +24,7 @@ from mobilize.core.ids import derive_mobilization_id
 from mobilize.core.ledger import Ledger
 from mobilize.core.policy import GovernancePolicy, load_governance_state
 from mobilize.core.types import Candidate, Need
+from mobilize.sim.fixture_transport import SCENARIOS, run_fixture_scenario
 from mobilize.sim.population import generate_population
 from mobilize.core.validation import stable_id_from_phone
 from mobilize.transports.base import validate_e164, validate_timezone
@@ -73,7 +74,37 @@ async def run_simulated(pool_size: int, need_count: int, max_calls: int, seed: i
           f"3-donor need (see README for the cited literature).{RESET}")
 
 
-async def run_real(phones: list[str], timezones: list[str], need_count: int, need_label: str, mobilization_id: str | None = None) -> None:
+async def run_fixture(scenario: str) -> None:
+    """E1: run one deterministic, API-shaped fixture scenario through the
+    real mobilize() dispatcher and the real _to_call_result translation
+    ladder -- no network, no simulator shortcut. Same scenario, same
+    underlying function, as the dashboard's /api/fixture/{scenario} endpoint
+    and the MCP mobilize_fixture tool -- see mobilize/sim/fixture_transport.py.
+
+        python -m mobilize.app.cli --fixture success
+        python -m mobilize.app.cli --fixture refusal
+        python -m mobilize.app.cli --fixture opt_out
+        python -m mobilize.app.cli --fixture ambiguity
+    """
+    print(f"Running fixture scenario {scenario!r} (deterministic, no network)...\n")
+    report = await run_fixture_scenario(scenario)
+    print(f"Scenario: {report['description']}\n")
+    result = (report["confirmed"] or report["all_results"])[0]
+    color = GREEN if result["outcome"] == "firm_yes" else (RED if result["outcome"] in ("no", "no_answer") else YELLOW)
+    print(f"  outcome:          {color}{result['outcome']}{RESET}")
+    print(f"  decision_reason:  {result['decision_reason']}")
+    print(f"  contact_outcome:  {result['contact_outcome']}")
+    print(f"  commitment_score: {result['commitment_score']:.2f}")
+    print(f"  stop_requested:   {result['stop_requested']}")
+    print(f"  evidence:         {result['evidence']!r}")
+    expected_ok = (
+        result["outcome"] == report["expected_outcome"]
+        and result["decision_reason"] == report["expected_decision_reason"]
+    )
+    print(f"\n{'✓ matches expected outcome/decision_reason' if expected_ok else '✗ MISMATCH vs expected scenario outcome'}")
+
+
+async def run_real(phones: list[str], timezones: list[str], need_count: int, need_label: str, mobilization_id: str | None = None, poll_timeout_s: float = 30.0) -> None:
     from mobilize.transports.calle import CalleTransport
 
     if "CALLE_API_KEY" not in os.environ:
@@ -153,7 +184,7 @@ async def run_real(phones: list[str], timezones: list[str], need_count: int, nee
         return
 
     result = await mobilize(need, candidates, transport, ledger=ledger, on_progress=_print_event,
-                             mobilization_id=mobilization_id,
+                             mobilization_id=mobilization_id, poll_timeout_s=poll_timeout_s,
                              governance_state=governance_state, governance_policy=governance_policy,
                              governance_state_path=GOVERNANCE_STATE_PATH)
     print(f"\nFilled: {result.filled}   Confirmed: {len(result.confirmed)}   Calls used: {result.calls_used}")
@@ -163,6 +194,10 @@ async def run_real(phones: list[str], timezones: list[str], need_count: int, nee
 def main() -> None:
     parser = argparse.ArgumentParser(description="mobilize() demo runner")
     parser.add_argument("--real", action="store_true", help="place real CALL-E calls (spends credits)")
+    parser.add_argument("--fixture", type=str, default=None, choices=sorted(SCENARIOS),
+                         help="run one deterministic, API-shaped fixture scenario through the real "
+                              "_to_call_result ladder instead of the simulator or a real call -- no "
+                              "network is possible in this mode. See mobilize/artifacts/e1_*.md.")
     parser.add_argument("--phones", type=str, default="", help="comma-separated E.164 phone numbers, --real only")
     parser.add_argument("--timezones", type=str, default="",
                          help="comma-separated IANA timezone names, one per --phones entry, e.g. "
@@ -175,9 +210,14 @@ def main() -> None:
     parser.add_argument("--mobilization-id", type=str, default=None,
                          help="override the default deterministic id (derived from --need-label + --phones), "
                               "to force a fresh mobilization instead of resuming an identical prior request")
+    parser.add_argument("--poll-timeout", type=float, default=30.0,
+                         help="seconds to wait for a real call to complete before treating it as timed out "
+                              "(--real only); a real conversation can run well past the 30s default")
     args = parser.parse_args()
 
-    if args.real:
+    if args.fixture:
+        asyncio.run(run_fixture(args.fixture))
+    elif args.real:
         phones = [p.strip() for p in args.phones.split(",") if p.strip()]
         timezones = [t.strip() for t in args.timezones.split(",") if t.strip()]
         if not phones:
@@ -188,7 +228,7 @@ def main() -> None:
                   "(one IANA timezone per phone -- required so calling-hour governance evaluates each "
                   "recipient against their own local time, not the server's)", file=sys.stderr)
             sys.exit(1)
-        asyncio.run(run_real(phones, timezones, min(args.need_count, len(phones)), args.need_label, args.mobilization_id))
+        asyncio.run(run_real(phones, timezones, min(args.need_count, len(phones)), args.need_label, args.mobilization_id, args.poll_timeout))
     else:
         asyncio.run(run_simulated(args.pool_size, args.need_count, args.max_calls, args.seed))
 

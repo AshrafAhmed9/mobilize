@@ -1,0 +1,72 @@
+{
+  "id": "call_Y5G3XdOQXT4zwdge-oB8wA",
+  "object": "call_task",
+  "status": "completed",
+  "task": "You are calling on behalf of City Hospital about an urgent request: urgent system validation test, please answer honestly. Briefly and politely explain the request, ask whether the recipient can help right now, and if so ask when they can arrive. Identify yourself as an AI assistant at the start of the call. Keep the call under 60 seconds. If they decline or are unable to help, thank them and end the call. If the recipient explicitly asks not to be contacted again or to be removed from the list, acknowledge that clearly and make sure it is captured -- this request will be honored permanently and immediately.",
+  "recipients": [
+    {
+      "id": "rcp_a097f3e110893359",
+      "phones": ["[redacted]"],
+      "locale": "en-US",
+      "region": "US",
+      "status": "completed",
+      "structured_result": null,
+      "summary": "The call completed. The recipient answered, said they could not help right now, and confirmed there was nothing else to capture.",
+      "attempts": [
+        {
+          "id": "att_5910263fc3f2872a",
+          "phone": "[redacted]",
+          "status": "completed",
+          "started_at": "2026-09-12T13:20:36Z",
+          "completed_at": "2026-09-12T13:21:32Z",
+          "summary": "The call completed. The recipient answered, said they could not help right now, and confirmed there was nothing else to capture.",
+          "transcript_turns": [
+            {"offset_seconds": 0, "speaker": "bot", "text": "Hello,"},
+            {"offset_seconds": 0, "speaker": "bot", "text": "I’m an AI assistant calling on behalf of City Hospital."},
+            {"offset_seconds": 7, "speaker": "user", "text": "Hello. Hello."},
+            {"offset_seconds": 7, "speaker": "bot", "text": "Hi there."},
+            {"offset_seconds": 8, "speaker": "bot", "text": "City Hospital has an urgent system validation test and asks that you answer honestly;"},
+            {"offset_seconds": 13, "speaker": "bot", "text": "can you help right now?"},
+            {"offset_seconds": 21, "speaker": "user", "text": "Yes, I have come actually wait, crashed that something came up. I can't."},
+            {"offset_seconds": 22, "speaker": "bot", "text": "Thanks for letting me know—I'll make a note that you can't help right now."},
+            {"offset_seconds": 25, "speaker": "bot", "text": "Is there anything else I should capture before I go?"},
+            {"offset_seconds": 30, "speaker": "user", "text": "Nope."},
+            {"offset_seconds": 31, "speaker": "bot", "text": "Thank you, bye."}
+          ],
+          "provider_call_id": "52daaed0d86046ad82c7d34d2a37a4c0",
+          "failure_code": null,
+          "failure_message": null
+        }
+      ]
+    }
+  ],
+  "structured_result": {
+    "can_come": "no",
+    "eta_minutes": "unknown",
+    "final_position": "declined_or_withdrawn",
+    "evidence_summary": "Recipient said, \"Yes, I have come actually wait, crashed that something came up. I can't,\" and then said \"Nope\" when asked if there was anything else to capture.",
+    "wants_no_further_contact": "no"
+  },
+  "summary": "The call completed. The recipient answered, said they could not help right now, and confirmed there was nothing else to capture.",
+  "task_completed": true,
+  "completion_confidence": {"score": 0.92, "label": "high"},
+  "evidence": [
+    "The recipient answered the call live.",
+    "They indicated they could not help right now.",
+    "They did not provide an ETA and did not request removal or no further contact."
+  ],
+  "metadata": {"candidate_id": "c_9e02e8b32194f956"},
+  "failure_code": null,
+  "failure_message": null,
+  "created_at": "2026-09-12T13:19:42.344162Z",
+  "completed_at": "2026-09-12T13:21:48.096138Z",
+  "_our_local_dispatch_result": {
+    "call_id": "call_Y5G3XdOQXT4zwdge-oB8wA",
+    "outcome": "no",
+    "commitment_score": 0.0,
+    "stated_yes": false,
+    "decision_reason": "recipient_declined",
+    "contact_outcome": "refusal",
+    "note": "The transcript's user turn contains an initial 'Yes' followed by an explicit retraction ('actually wait, crashed that something came up. I can't'). Our commitment scoring read past the initial yes to the final expressed position and correctly scored this as NOT confirmed (stated_yes=false, score=0.0), matching CALL-E's own structured_result.final_position='declined_or_withdrawn' exactly. This is the retraction-hardening behavior (final_position schema field, commit 35ff467) validated against a real call on the current dispatcher for the first time."
+  }
+}

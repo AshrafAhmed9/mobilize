@@ -1,0 +1,73 @@
+{
+  "id": "call_Jy5IaMdseaRQyKXWfcs2bA",
+  "object": "call_task",
+  "status": "completed",
+  "task": "You are calling on behalf of City Hospital about an urgent request: urgent system validation test, please answer honestly. Briefly and politely explain the request, ask whether the recipient can help right now, and if so ask when they can arrive. Identify yourself as an AI assistant at the start of the call. Keep the call under 60 seconds. If they decline or are unable to help, thank them and end the call. If the recipient explicitly asks not to be contacted again or to be removed from the list, acknowledge that clearly and make sure it is captured -- this request will be honored permanently and immediately.",
+  "recipients": [
+    {
+      "id": "rcp_48399fa6c2ad63af",
+      "phones": ["[redacted]"],
+      "locale": "en-US",
+      "region": "US",
+      "status": "completed",
+      "structured_result": null,
+      "summary": "The call reached the recipient, but the request was not clearly completed. They only gave a hesitant response and no clear arrival time was confirmed.",
+      "attempts": [
+        {
+          "id": "att_60a50ef6627188c2",
+          "phone": "[redacted]",
+          "status": "completed",
+          "started_at": "2026-09-12T13:04:00Z",
+          "completed_at": "2026-09-12T13:05:19Z",
+          "summary": "The call reached the recipient, but the request was not clearly completed. They only gave a hesitant response and no clear arrival time was confirmed.",
+          "transcript_turns": [
+            {"offset_seconds": 0, "speaker": "bot", "text": "Hi,"},
+            {"offset_seconds": 0, "speaker": "bot", "text": "I’m an AI assistant calling on behalf of City Hospital."},
+            {"offset_seconds": 7, "speaker": "user", "text": "Hello."},
+            {"offset_seconds": 8, "speaker": "bot", "text": "Hi!"},
+            {"offset_seconds": 8, "speaker": "bot", "text": "I’m calling about an urgent system validation test. You don’t need to provide any personal information,"},
+            {"offset_seconds": 14, "speaker": "bot", "text": "and you’ll never be charged for participating, but it does ask that you answer honestly."},
+            {"offset_seconds": 18, "speaker": "bot", "text": "Could you help right now?"},
+            {"offset_seconds": 25, "speaker": "user", "text": "Maybe I'll try, I'm not sure if I can make it work."},
+            {"offset_seconds": 26, "speaker": "bot", "text": "Thanks for being open to that."},
+            {"offset_seconds": 28, "speaker": "bot", "text": "When could you arrive?"},
+            {"offset_seconds": 35, "speaker": "user", "text": "Maybe I'll try, I'm not sure if I can make it work."},
+            {"offset_seconds": 35, "speaker": "bot", "text": "Thanks for being open to that."},
+            {"offset_seconds": 37, "speaker": "bot", "text": "Could you tell me when you can arrive?"},
+            {"offset_seconds": 49, "speaker": "user", "text": "1"},
+            {"offset_seconds": 50, "speaker": "bot", "text": "Thank you, bye."}
+          ],
+          "provider_call_id": "71b791d6d89e431485002bb9c229b261",
+          "failure_code": null,
+          "failure_message": null
+        }
+      ]
+    }
+  ],
+  "structured_result": {
+    "can_come": "unknown",
+    "eta_minutes": "unknown",
+    "final_position": "unclear",
+    "evidence_summary": "The recipient said, \"Maybe I'll try, I'm not sure if I can make it work,\" and later only said \"1\" when asked when they could arrive.",
+    "wants_no_further_contact": "no"
+  },
+  "summary": "The call reached the recipient, but the request was not clearly completed. They only gave a hesitant response and no clear arrival time was confirmed.",
+  "task_completed": false,
+  "completion_confidence": {"score": 0.72, "label": "medium"},
+  "evidence": [
+    "The recipient answered the call and heard the City Hospital validation-test request.",
+    "Their response was tentative: they might try, but were not sure they could make it work.",
+    "No clear commitment or ETA was confirmed before the call ended."
+  ],
+  "metadata": {"candidate_id": "c_9e02e8b32194f956"},
+  "failure_code": null,
+  "failure_message": null,
+  "created_at": "2026-09-12T13:02:32.174580Z",
+  "completed_at": "2026-09-12T13:06:07.256433Z",
+  "_our_local_dispatch_result": {
+    "dispatched_at": "2026-09-12T13:02:49.423933+00:00",
+    "call_id": "call_Jy5IaMdseaRQyKXWfcs2bA",
+    "mobilize_local_outcome": "poll_timed_out",
+    "note": "Our own poll_timeout_s=90 elapsed before CALL-E's task object transitioned to status=completed (that transition happened ~198s after dispatch, per created_at/completed_at above -- well past 90s). No call_result/commitment score was ever computed locally for this attempt; the ledger has no call_result event for it. This is a genuine, observed real-world timing gap between actual call duration (~79s, started_at to completed_at on the attempt) and CALL-E's task-object completion latency, not a fabricated or induced failure."
+  }
+}

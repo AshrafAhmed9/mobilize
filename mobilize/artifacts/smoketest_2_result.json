@@ -9,5 +9,7 @@
     "commitment_score": 0.54,
     "note": "Scored just below the 0.55 confirmation threshold, so correctly NOT counted as confirmed. This is the commitment calibration system behaving as designed at a real decision boundary, not a bug -- it demonstrates the threshold is discriminating rather than rubber-stamping every stated yes."
   },
-  "phone_redacted": "[redacted]"
+  "phone_redacted": "[redacted]",
+  "_provenance_note_2026_09_12": "C0 review: this artifact has no call_id, no raw status, and no transcript field. mobilize/artifacts/devpost_submission.md previously claimed this call's transcript 'is committed in the repo' -- that claim was false and has been corrected there. If the transcript still exists, it has not been saved to mobilize/artifacts/; this note flags the gap rather than fabricating a transcript to fill it.",
+  "_provenance_attempted_2026_09_12": "Attempted to reconcile via the API. GET /v1/calls/call_2jcA9r17_ndyzxp8IYkkhA (smoketest_1's saved ID) was live and confirmed to be smoketest_1, not this call -- its provider_call_id matched the OTHER billing ID (db39ddca6b684932bbdd908764740b58), implying the remaining billing record (b981d2935adf4053be2d9e6a96599ad4) is this call. But no call-task ID (the 'call_...' form GET /v1/calls/{id} requires) was ever saved for this call anywhere in the repo, and the API has no list/search endpoint to look one up by billing ID. This gap cannot be closed retroactively -- it is a permanent, accepted limitation of this artifact, not something further investigation resolves. Superseded going forward by a fresh real call placed against the current dispatcher (see mobilize/artifacts/real_call_validation/ once created)."
 }

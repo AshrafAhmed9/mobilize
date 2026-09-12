@@ -11,13 +11,14 @@ from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import Callable
 
-from mobilize.core.ledger import Ledger
+from mobilize.core.ledger import Ledger, OperationConflictError
 from mobilize.core.planner import plan_wave, should_dispatch_next_wave
 from mobilize.core.policy import (
     GovernancePolicy,
     GovernanceState,
     add_do_not_call,
     filter_callable,
+    is_callable,
     record_call,
     save_governance_state,
 )
@@ -27,9 +28,11 @@ from mobilize.core.types import (
     CallResult,
     MobilizeResult,
     Need,
+    StopReason,
     Wave,
+    build_outcome_counts,
 )
-from mobilize.transports.base import Transport
+from mobilize.transports.base import CalleSafeRejectionError, Transport
 
 CONFIRMED_OUTCOMES = {CallOutcome.FIRM_YES, CallOutcome.SOFT_YES}
 COMMITMENT_THRESHOLD = 0.55  # commitment_score at/above this counts toward "confirmed"
@@ -127,13 +130,35 @@ async def _mobilize_locked(
     # check that a result actually belongs to who we called).
     by_id_all = {c.id: c for c in pool}
 
+    # A2: prove this call is either a genuine first use of mobilization_id or
+    # a resume of the exact same operation, not a different later operation
+    # that happens to derive the same id from an identical label+phone list
+    # (derive_mobilization_id only hashes those two things). count, the
+    # deadline, location, max_calls, and the registry snapshot (every
+    # candidate_id in the pool as originally passed in, before governance
+    # filtering) are the operation's identity; any of them changing means
+    # this is a different operation and must be rejected rather than
+    # silently continuing against the old operation's ledger history.
+    operation_fingerprint = {
+        "need_label": need.label,
+        "count": need.count,
+        "deadline_minutes": need.deadline_minutes,
+        "location": need.location,
+        "max_calls": need.max_calls,
+        "registry_snapshot": sorted(by_id_all.keys()),
+    }
+    ledger.check_operation_identity(mobilization_id, operation_fingerprint)
+    ledger.record_operation_identity(mobilization_id, operation_fingerprint)
+
+    governance_blocked_count = 0
     if governance_state is not None:
         policy = governance_policy or GovernancePolicy()
         original_pool_size = len(pool)
         pool = filter_callable(pool, state=governance_state, policy=policy)
-        if len(pool) < original_pool_size and on_progress:
+        governance_blocked_count = original_pool_size - len(pool)
+        if governance_blocked_count and on_progress:
             on_progress("governance_filtered", {
-                "blocked": original_pool_size - len(pool),
+                "blocked": governance_blocked_count,
                 "remaining": len(pool),
             })
 
@@ -234,6 +259,16 @@ async def _mobilize_locked(
     #    fresh instance has no way to resolve a pre-crash simulated call_id
     #    and will simply time out here -- a property of the simulator, not
     #    of this recovery logic.
+    # A2: candidates an operator has already reviewed and explicitly
+    # reconciled (record_reconciliation) for a prior unresolved recovery or
+    # wave timeout must not go on blocking every subsequent run forever --
+    # that would make reconciliation pointless. This does NOT reopen them
+    # for a fresh dispatch (they already have a "dispatched" entry, so they
+    # were already removed from `remaining` above) and does NOT touch the
+    # original unresolved ledger entry; it only stops treating them as a
+    # live blocker for the wave-dispatch guard below.
+    reconciled = ledger.reconciled_candidates(mobilization_id)
+
     if in_flight:
         emit("recovering_in_flight", {"count": len(in_flight)})
         recovery_deadline = time.monotonic() + recovery_timeout_s
@@ -253,6 +288,20 @@ async def _mobilize_locked(
                 await asyncio.sleep(poll_interval_s)
         for candidate_id in pending_recovery:
             emit("recovery_unresolved", {"candidate_id": candidate_id})
+            if candidate_id in reconciled:
+                # An operator has already reviewed this exact unresolved
+                # call and recorded a decision -- don't re-block on it
+                # forever, but don't quietly forget it happened either.
+                emit("recovery_reconciled", {"candidate_id": candidate_id})
+                continue
+            # A2: a recovery poll that never resolved means this call may
+            # still be live at the provider -- it must block further waves
+            # exactly like any other ambiguous dispatch, not just be logged
+            # and forgotten. Previously this candidate_id was surfaced only
+            # via the event, never added here, so a later wave could
+            # dispatch on top of a possibly-still-in-flight call.
+            if candidate_id not in ambiguous_candidate_ids:
+                ambiguous_candidate_ids.append(candidate_id)
 
     wave_index = 0
     while (
@@ -278,8 +327,42 @@ async def _mobilize_locked(
         if not plan.candidates:
             break
 
-        wave = Wave(index=wave_index, candidate_ids=[c.id for c in plan.candidates])
-        emit("wave_dispatch", {"wave": wave_index, "candidates": [c.id for c in plan.candidates]})
+        # A3: re-check governance HERE, immediately before this wave's
+        # candidates are actually dispatched, not just once against the
+        # whole pool before the wave loop started. A wave can be planned
+        # from a `remaining` pool that was governance-clean minutes ago (at
+        # roster load, or as of the previous wave) but is stale by the time
+        # THIS wave actually goes out -- calling hours can roll over, a
+        # cooldown from a call placed in an earlier wave of this same run
+        # can now be active, or (as in the regression test) an opt-out can
+        # arrive through some other channel while a prior wave was still
+        # polling. A candidate who fails this check is dropped from the
+        # wave and from `remaining` (so they don't keep coming back up
+        # every subsequent wave), and counted in `governance_blocked_count`
+        # exactly like an initial-load block, not silently swallowed.
+        wave_candidates = plan.candidates
+        if governance_state is not None:
+            now = datetime.now(timezone.utc)
+            newly_blocked = [
+                c for c in wave_candidates
+                if not is_callable(c, state=governance_state, policy=policy, now=now)[0]
+            ]
+            if newly_blocked:
+                wave_candidates = [c for c in wave_candidates if c not in newly_blocked]
+                for c in newly_blocked:
+                    remaining.pop(c.id, None)
+                governance_blocked_count += len(newly_blocked)
+                emit("governance_filtered", {
+                    "blocked": len(newly_blocked),
+                    "remaining": len(remaining),
+                    "wave": wave_index,
+                    "candidates": [c.id for c in newly_blocked],
+                })
+            if not wave_candidates:
+                continue
+
+        wave = Wave(index=wave_index, candidate_ids=[c.id for c in wave_candidates])
+        emit("wave_dispatch", {"wave": wave_index, "candidates": [c.id for c in wave_candidates]})
         wave_ambiguous_ids: list[str] = []
 
         async def _dispatch_one(candidate: Candidate) -> tuple[str, str | None]:
@@ -312,6 +395,17 @@ async def _mobilize_locked(
                 # number was never going to succeed).
                 emit("dispatch_failed", {"candidate_id": candidate.id, "error": str(exc)})
                 return candidate.id, None
+            except CalleSafeRejectionError as exc:
+                # An explicit provider-side rejection (auth failure, rate
+                # limit, unsupported destination, policy violation) --
+                # CALL-E's own response says the call was never queued, so
+                # this is definitely safe, exactly like the ValueError case
+                # above, NOT an unknown/ambiguous failure. Distinguished
+                # from the generic Exception branch below so a rate limit
+                # or a bad destination doesn't block every later wave the
+                # way a genuinely ambiguous timeout must.
+                emit("dispatch_failed", {"candidate_id": candidate.id, "error": str(exc), "safely_rejected": True})
+                return candidate.id, None
             except Exception as exc:
                 # Anything else -- a timeout, a connection reset, an HTTP
                 # error -- could mean CALL-E accepted the request before
@@ -337,7 +431,7 @@ async def _mobilize_locked(
         # mechanism the whole project is named for. A sequential loop here
         # would await each network round trip in turn, silently serializing
         # what the README, the skill, and the demo all describe as parallel.
-        dispatched = await asyncio.gather(*(_dispatch_one(c) for c in plan.candidates))
+        dispatched = await asyncio.gather(*(_dispatch_one(c) for c in wave_candidates))
         call_ids: dict[str, str] = {cid: call_id for cid, call_id in dispatched if call_id is not None}
         failed_ids = [cid for cid, call_id in dispatched if call_id is None]
         ambiguous_candidate_ids.extend(wave_ambiguous_ids)
@@ -350,6 +444,10 @@ async def _mobilize_locked(
         # failures (in failed_ids, not wave_ambiguous_ids) are true
         # non-events and stay uncounted.
         calls_used += len(call_ids) + len(wave_ambiguous_ids)
+        # Keep the running accepted-by-provider set current across waves --
+        # it's used at the end for the A0 counts table (accepted_by_provider),
+        # not just the pre-loop recovery snapshot.
+        dispatched_candidate_ids.update(call_ids)
         for candidate_id in call_ids:
             remaining.pop(candidate_id, None)
         # A candidate whose dispatch failed (bad phone, a provider error,
@@ -384,6 +482,17 @@ async def _mobilize_locked(
 
         for candidate_id in pending:
             emit("call_timed_out", {"candidate_id": candidate_id})
+            if candidate_id in reconciled:
+                emit("recovery_reconciled", {"candidate_id": candidate_id})
+                continue
+            # A2: same reasoning as recovery_unresolved above -- a dispatched
+            # call that never returned a terminal result before the poll
+            # deadline may still be live at the provider. It must block
+            # further waves (via the `not ambiguous_candidate_ids` loop
+            # guard) and be visible in the returned result, not just logged
+            # as an event and silently excluded from `remaining` above.
+            if candidate_id not in ambiguous_candidate_ids:
+                ambiguous_candidate_ids.append(candidate_id)
 
         waves.append(wave)
         wave_index += 1
@@ -393,6 +502,42 @@ async def _mobilize_locked(
 
     filled = len(confirmed) >= need.count
     over_recruitment = (calls_used / need.count) if need.count else 0.0
+
+    # A0: record WHY the wave loop stopped, from the same conditions the
+    # loop guard above already checks -- this does not change any of them,
+    # only records which one actually applied, in the same precedence order
+    # the loop guard uses (ambiguous check comes before the deadline/budget/
+    # pool checks in the `while` condition, so it's checked first here too).
+    if filled:
+        stop_reason = StopReason.TARGET_MET
+    elif ambiguous_candidate_ids:
+        stop_reason = StopReason.UNRESOLVED_DISPATCH_OR_CALL
+    elif datetime.now(timezone.utc) >= deadline_at:
+        stop_reason = StopReason.DEADLINE
+    elif calls_used >= need.max_calls:
+        stop_reason = StopReason.BUDGET_EXHAUSTED
+    elif len(remaining) == 0:
+        stop_reason = StopReason.NO_ELIGIBLE_CANDIDATES
+    else:
+        # Shouldn't normally happen (the loop only exits when one of the
+        # above is true), but never guess: leave it unknown rather than
+        # asserting a reason that may not actually hold.
+        stop_reason = None
+
+    # A0 counts table. `by_id_all` is the full pre-governance-filter pool
+    # (built before filtering, see its own comment above), so it's the
+    # correct `registered` denominator regardless of governance state.
+    # `dispatched_candidate_ids` (ledger "dispatched" entries, i.e. a
+    # call_id was actually returned) is `accepted_by_provider`.
+    counts = build_outcome_counts(
+        registered=len(by_id_all),
+        governance_blocked=governance_blocked_count,
+        attempted=calls_used,
+        accepted_by_provider=len(dispatched_candidate_ids),
+        unresolved=len(ambiguous_candidate_ids),
+        completed_results=all_results,
+        need_count=need.count,
+    )
 
     return MobilizeResult(
         need=need,
@@ -404,6 +549,8 @@ async def _mobilize_locked(
         filled=filled,
         over_recruitment_ratio=over_recruitment,
         ambiguous_candidate_ids=ambiguous_candidate_ids,
+        stop_reason=stop_reason.value if stop_reason is not None else None,
+        counts=counts.as_dict(),
     )
 
 
@@ -416,6 +563,10 @@ def _serialize(result: CallResult) -> dict:
         "stated_yes": result.stated_yes,
         "stop_requested": result.stop_requested,
         "evidence": result.evidence,
+        # A1/A0: may be None (e.g. a synthetic/test CallResult never routed
+        # through _to_call_result) -- serialized as-is, null round-trips fine.
+        "decision_reason": result.decision_reason,
+        "contact_outcome": result.contact_outcome,
     }
 
 
@@ -430,4 +581,11 @@ def _deserialize(payload: dict) -> CallResult:
         # existed won't have it, and that must not be an error on replay.
         stop_requested=payload.get("stop_requested", False),
         evidence=payload["evidence"],
+        # Same pattern, same reasoning, for the A0/A1 provenance fields: a
+        # ledger entry written before these fields existed has no opinion
+        # on why the outcome was what it was. That must deserialize as
+        # explicitly unknown (None), never guessed at from the outcome
+        # value alone.
+        decision_reason=payload.get("decision_reason"),
+        contact_outcome=payload.get("contact_outcome"),
     )

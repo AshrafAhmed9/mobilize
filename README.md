@@ -1,6 +1,6 @@
 # mobilize
 
-### A human coordinator can hold one phone conversation. `mobilize` holds forty — and knows which "yes" is real.
+### A human coordinator can hold one phone conversation. `mobilize` holds several at once — and knows which "yes" is real.
 
 **A coordinator's tool for filling an urgent need from a real list of
 people, built on [CALL-E](https://www.heycall-e.com/).**
@@ -33,9 +33,9 @@ it for real through CALL-E.
 **The mechanism, in one sentence:** `mobilize` calls several people at
 once, scores how firm each "yes" actually is — because people agree to be
 polite and then don't show up — and **stops dispatching the instant the
-need is met.** Of the people it reports as confirmed, **94.6% would
-actually show up**, versus 87.7% if you trust every stated yes and 80.2% if
-you just call everyone in the registry. Measured across 300 simulated
+need is met.** Of the people it reports as confirmed, **93.7% would
+actually show up**, versus 86.3% if you trust every stated yes and 80.0% if
+you just call everyone in the registry. Measured across 200 simulated
 mobilizations with known ground truth, reproducible with one command — [see
 Evaluation](#evaluation).
 
@@ -202,7 +202,7 @@ exactly the recovery path it exists for. Both fixed: `calls_used` now comes
 directly from ledger-recorded dispatches, and the dispatcher passes each
 recovered call's original candidate into `poll()` explicitly so binding
 validation survives a restart. See
-`mobilize/tests/test_governance_accounting_and_binding.py`. 65 tests passed at that point; 82 pass now, including the registry module below.
+`mobilize/tests/test_governance_accounting_and_binding.py`. 65 tests passed at that point; the suite has grown substantially since — 300 tests collect (295 pass, 3 documented as known gaps via `xfail`, 2 `xpass`) as of this writing (`.venv/bin/python -m pytest mobilize/tests/ -q`).
 
 ### 5. Governance — consent is enforced in code, not just policy
 
@@ -257,13 +257,21 @@ show-up probability the system never sees directly, only noisy signals
 (pickup, stated answer, hedging language) — exactly what the real transport
 would produce.
 
-**Measured result, 300 trials** (`python -m mobilize.sim.harness`):
+**Measured result, 200 trials** (`python -m mobilize.sim.harness`, seeds 1000-1199):
 
 | Policy | Fill rate | Confirmation accuracy | Mean calls used | Over-recruitment |
 |---|---|---|---|---|
-| **Calibrated (this project)** | 99.7% | **94.6%** | 11.0 | 3.7× |
-| Stated-yes-only (naive) | 100% | 87.7% | 6.8 | 2.3× |
-| Call-everyone | 100% | 80.2% | 40.0 | 13.3× |
+| **Calibrated (this project)** | 99.5% | **93.7%** | 10.62 | 3.54× |
+| Stated-yes-only (naive) | 100% | 86.3% | 7.04 | 2.35× |
+| Call-everyone | 100% | 80.0% | 40.00 | 13.33× |
+
+"Over-recruitment" here means calls placed per person needed (`calls_used /
+need.count`), not excess people recruited beyond the need. Confirmation
+accuracy is a macro average: computed per trial, then averaged across
+trials (not pooled across all confirmed donors), and trials with zero
+confirmations are excluded from that average. See
+`mobilize/artifacts/benchmark_audit_b0.md` for the full measurement
+dictionary and verbatim output.
 
 `confirmation_accuracy` is the metric that matters: of the donors a policy
 believed were confirmed, what fraction would *actually* show up? Fill rate
@@ -324,7 +332,7 @@ Run the test suite:
 pytest mobilize/tests/ -v
 ```
 
-Run the evaluation harness (zero cost, ~5 min for 300 trials):
+Run the evaluation harness (zero cost, ~2 min for 200 trials):
 
 ```bash
 python -m mobilize.sim.harness
@@ -483,7 +491,7 @@ mobilize/
 ├── mcp/             # MCP server
 ├── app/             # dashboard (the product) + CLI + bundled sample registry
 ├── artifacts/       # committed real-call transcripts, results, Devpost copy
-└── tests/           # 111 tests incl. property-based, real-subprocess crash, and
+└── tests/           # 300 tests collect (295 pass, 3 documented xfail, 2 xpass) incl. property-based, real-subprocess crash, and
                     #   concurrency/validation/resume/registry tests
 skills/mobilize/     # Agent Skill (SKILL.md) wrapping mobilize() for reuse
 run.sh               # one-command setup + launch for the dashboard

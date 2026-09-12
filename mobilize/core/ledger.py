@@ -26,9 +26,18 @@ def _utcnow_iso() -> str:
     return datetime.now(timezone.utc).isoformat()
 
 
+class OperationConflictError(Exception):
+    """Raised when a mobilization_id is reused with materially different
+    request parameters than the operation it was first recorded with (see
+    `Ledger.record_operation_identity`). A caller must either start a
+    genuinely new operation (different mobilization_id) or, if the request
+    is meant to resume the prior operation, submit the original parameters
+    unchanged. Never silently mixed."""
+
+
 @dataclass(frozen=True)
 class LedgerEntry:
-    kind: str  # "dispatch_intent" | "dispatched" | "result"
+    kind: str  # "dispatch_intent" | "dispatched" | "result" | "operation" | "reconciled"
     mobilization_id: str
     candidate_id: str
     idempotency_key: str
@@ -81,15 +90,112 @@ class Ledger:
         """Candidates with a logged dispatch_intent but no confirmed
         "dispatched" (a call_id was actually returned) or "result" entry --
         an attempt was made, but we don't know whether it actually reached
-        CALL-E. These must never be silently retried."""
+        CALL-E. These must never be silently retried.
+
+        A candidate with an explicit "reconciled" entry (see
+        `record_reconciliation`) is excluded here even though the original
+        dispatch_intent entry is left untouched in the ledger -- an operator
+        has looked at that specific ambiguous attempt and recorded a
+        decision, which is the only thing allowed to unblock it. The
+        ledger record of the original ambiguity is never deleted or
+        overwritten, only supplemented, so the audit trail of "we didn't
+        know, then a human decided X" survives."""
         intended: set[str] = set()
         resolved: set[str] = set()
+        reconciled: set[str] = set()
         for entry in self.replay(mobilization_id):
             if entry.kind == "dispatch_intent":
                 intended.add(entry.candidate_id)
             elif entry.kind in ("dispatched", "result"):
                 resolved.add(entry.candidate_id)
-        return intended - resolved
+            elif entry.kind == "reconciled":
+                reconciled.add(entry.candidate_id)
+        return intended - resolved - reconciled
+
+    def reconciled_candidates(self, mobilization_id: str) -> set[str]:
+        """Every candidate_id an operator has explicitly reconciled for this
+        mobilization_id, regardless of which kind of ambiguity it was
+        (a dispatch_intent that never got a call_id, or a dispatched call
+        whose result polling/recovery never resolved). Used by the
+        dispatcher to stop treating a specific, already-reviewed candidate
+        as blocking further waves -- without reopening it for a fresh
+        dispatch, and without touching the original ambiguous entry."""
+        return {
+            entry.candidate_id
+            for entry in self.replay(mobilization_id)
+            if entry.kind == "reconciled"
+        }
+
+    def record_reconciliation(
+        self, mobilization_id: str, candidate_id: str, *, decision: str, operator: str, note: str | None = None,
+    ) -> None:
+        """The one sanctioned way to unblock an ambiguous/unresolved
+        candidate for a given mobilization_id -- an explicit, attributed,
+        durable operator action, never an automatic retry and never a
+        deletion of the original unresolved entry. `decision` is a free-form
+        operator-supplied label (e.g. "confirmed_no_call_placed",
+        "confirmed_call_placed_no_answer", "treat_as_failed") describing
+        what was actually established, not a re-guess by this code."""
+        entry = LedgerEntry(
+            kind="reconciled",
+            mobilization_id=mobilization_id,
+            candidate_id=candidate_id,
+            idempotency_key=self.idempotency_key(mobilization_id, candidate_id),
+            payload={"decision": decision, "operator": operator, "note": note},
+        )
+        self._append(entry)
+
+    _OPERATION_IDENTITY_VERSION = 1
+
+    def record_operation_identity(self, mobilization_id: str, fingerprint: dict) -> None:
+        """Persist the full request identity (count, deadline, location,
+        max_calls, registry snapshot, ...) the FIRST time a mobilization_id
+        is used. This is what lets `check_operation_identity` tell a
+        legitimate resume (identical parameters) apart from a different
+        later operation that happens to reuse the same label+phone-derived
+        id -- the label and phone list alone are not enough to prove it's
+        the same operation. A no-op if an identity is already on record for
+        this mobilization_id (first write wins; never overwritten)."""
+        if self.get_operation_identity(mobilization_id) is not None:
+            return
+        entry = LedgerEntry(
+            kind="operation",
+            mobilization_id=mobilization_id,
+            candidate_id="",
+            idempotency_key=mobilization_id,
+            payload={"version": self._OPERATION_IDENTITY_VERSION, **fingerprint},
+        )
+        self._append(entry)
+
+    def get_operation_identity(self, mobilization_id: str) -> dict | None:
+        for entry in self.replay(mobilization_id):
+            if entry.kind == "operation" and entry.payload is not None:
+                return entry.payload
+        return None
+
+    def check_operation_identity(self, mobilization_id: str, fingerprint: dict) -> None:
+        """Raise OperationConflictError if this mobilization_id already has
+        a recorded operation identity that disagrees with `fingerprint` on
+        any field. A mismatched schema version (an identity recorded before
+        some field existed) is not itself treated as a conflict -- there is
+        nothing to compare it against -- so only fields present in BOTH the
+        stored and current fingerprint are compared."""
+        existing = self.get_operation_identity(mobilization_id)
+        if existing is None:
+            return
+        current = {"version": self._OPERATION_IDENTITY_VERSION, **fingerprint}
+        shared_keys = set(existing) & set(current)
+        mismatched = {
+            key: (existing[key], current[key])
+            for key in shared_keys
+            if key != "version" and existing[key] != current[key]
+        }
+        if mismatched:
+            raise OperationConflictError(
+                f"mobilization_id {mobilization_id!r} was already used for an operation with "
+                f"different parameters: {mismatched}. Use a different mobilization_id for a new "
+                "operation, or resubmit the original parameters to resume this one."
+            )
 
     def record_dispatch(self, mobilization_id: str, candidate_id: str, call_id: str) -> None:
         entry = LedgerEntry(

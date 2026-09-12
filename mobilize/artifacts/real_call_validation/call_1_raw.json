@@ -1,0 +1,73 @@
+{
+  "id": "call_Jr_4iJp4cJuQc2cMgylcZA",
+  "object": "call_task",
+  "status": "completed",
+  "task": "You are calling on behalf of City Hospital about an urgent request: urgent system validation test, please answer honestly. Briefly and politely explain the request, ask whether the recipient can help right now, and if so ask when they can arrive. Identify yourself as an AI assistant at the start of the call. Keep the call under 60 seconds. If they decline or are unable to help, thank them and end the call. If the recipient explicitly asks not to be contacted again or to be removed from the list, acknowledge that clearly and make sure it is captured -- this request will be honored permanently and immediately.",
+  "recipients": [
+    {
+      "id": "rcp_5080807a47a97436",
+      "phones": ["[redacted]"],
+      "locale": "en-US",
+      "region": "US",
+      "status": "completed",
+      "structured_result": null,
+      "summary": "The call was completed successfully. The recipient agreed to help and stated they would arrive in 10 minutes.",
+      "attempts": [
+        {
+          "id": "att_fd238b6d01254026",
+          "phone": "[redacted]",
+          "status": "completed",
+          "started_at": "2026-09-12T13:23:24Z",
+          "completed_at": "2026-09-12T13:23:55Z",
+          "summary": "The call was completed successfully. The recipient agreed to help and stated they would arrive in 10 minutes.",
+          "transcript_turns": [
+            {"offset_seconds": 0, "speaker": "bot", "text": "Hello,"},
+            {"offset_seconds": 0, "speaker": "bot", "text": "this is an AI assistant calling on behalf of City Hospital."},
+            {"offset_seconds": 7, "speaker": "user", "text": "Hello."},
+            {"offset_seconds": 8, "speaker": "bot", "text": "I’m calling about an urgent system validation test for City Hospital;"},
+            {"offset_seconds": 12, "speaker": "bot", "text": "can you help right now?"},
+            {"offset_seconds": 18, "speaker": "user", "text": "Yes, I can help. I'll be there in 10 minutes."},
+            {"offset_seconds": 18, "speaker": "bot", "text": "Great, thanks."},
+            {"offset_seconds": 20, "speaker": "bot", "text": "Thank you, bye."}
+          ],
+          "provider_call_id": "7a5d9193c8174ce58c33fff9280810e3",
+          "failure_code": null,
+          "failure_message": null
+        }
+      ]
+    }
+  ],
+  "structured_result": {
+    "can_come": "yes",
+    "eta_minutes": "10",
+    "final_position": "confirmed",
+    "evidence_summary": "The recipient said, \"Yes, I can help. I'll be there in 10 minutes.\"",
+    "wants_no_further_contact": "no"
+  },
+  "summary": "The call was completed successfully. The recipient agreed to help and stated they would arrive in 10 minutes.",
+  "task_completed": true,
+  "completion_confidence": {"score": 0.95, "label": "high"},
+  "evidence": [
+    "A live recipient answered the call.",
+    "The recipient clearly agreed to help right away.",
+    "The recipient provided an ETA of 10 minutes."
+  ],
+  "metadata": {"candidate_id": "c_9e02e8b32194f956"},
+  "failure_code": null,
+  "failure_message": null,
+  "created_at": "2026-09-12T13:22:37.509712Z",
+  "completed_at": "2026-09-12T13:24:08.602997Z",
+  "_our_local_dispatch_result_before_fix": {
+    "outcome": "soft_yes",
+    "commitment_score": 0.5,
+    "stated_yes": true,
+    "decision_reason": "confirmed",
+    "note": "BEFORE FIX: this real call exposed a genuine calibration gap. 'I'll be there in 10 minutes' matched no FIRM_MARKERS regex in mobilize/core/commitment.py (only words like 'leaving', 'on my way', 'right now', 'absolutely' were recognized), so it fell through to the neutral 0.5 default, landing just under the 0.55 confirmation threshold -- despite CALL-E's own extraction confidently saying final_position=confirmed, completion_confidence 0.95. The simulator never caught this because its synthetic phrases were generated from this exact marker list."
+  },
+  "_our_local_dispatch_result_after_fix": {
+    "outcome": "FIRM_YES",
+    "commitment_score": 0.6265697015750024,
+    "stated_yes": true,
+    "note": "AFTER FIX (commit pending): added \\bin \\d+ minutes?\\b / \\bin \\d+ mins?\\b as firm markers in mobilize/core/commitment.py, reasoning a concrete numeric ETA is itself a firm commitment signal distinct from vague hedges. Re-ran this exact call payload through mobilize.transports.calle._to_call_result after the fix: now scores 0.627, above threshold, matching CALL-E's own 'confirmed' verdict. Full test suite (310 passed/3 xfailed/2 xpassed) unaffected; harness re-run for drift check separately."
+  }
+}

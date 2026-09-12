@@ -20,6 +20,12 @@ import re
 FIRM_MARKERS = [
     r"\bleaving\b", r"\bon my way\b", r"\bright now\b", r"\bnow\b",
     r"\babsolutely\b", r"\bdefinitely\b", r"\bfor sure\b", r"\bgrabbing my keys\b",
+    # A concrete numeric ETA is itself a firm signal -- distinct from vague
+    # hedges like "should be able to" or "if I can" -- even with no other
+    # firm marker present. Found missing via a real CALL-E call (12 Sep
+    # 2026): "Yes, I can help. I'll be there in 10 minutes." scored neutral
+    # (0.5) purely because it contained none of the words above.
+    r"\bin \d+ minutes?\b", r"\bin \d+ mins?\b",
 ]
 HEDGE_MARKERS = [
     r"\bi'?ll try\b", r"\bmaybe\b", r"\bprobably\b", r"\bi think\b",

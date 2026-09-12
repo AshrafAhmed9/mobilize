@@ -1,0 +1,7 @@
+id,name,phone,timezone,region,locale,last_donation,distance_km,accept_rate,showup_rate,skills,shift_available_from,shift_available_until,notes
+s001,Nurse Ananya Bose,+15550102001,Asia/Kolkata,IN,en-IN,2026-08-20,3.4,0.7,0.7,RN|Triage,2026-09-12T00:00:00+00:00,2026-09-14T00:00:00+00:00,ICU float pool
+s002,EMT Rahul Verma,+15550102002,Asia/Kolkata,IN,en-IN,2026-09-05,5.0,0.6,0.6,EMT,2026-09-12T06:00:00+00:00,2026-09-13T06:00:00+00:00,on-call this week
+s003,Nurse Kavita Desai,+15550102003,Asia/Kolkata,IN,en-IN,,2.0,0.8,0.8,RN,2026-09-12T00:00:00+00:00,2026-09-13T00:00:00+00:00,new hire
+s004,Tech Suresh Nair,+15550102004,Asia/Kolkata,IN,en-IN,2026-09-10,7.5,0.5,0.5,LabTech,2026-09-12T00:00:00+00:00,2026-09-14T00:00:00+00:00,called in last week for donation drive too
+s005,EMT Priyal Shah,+15550102005,Asia/Kolkata,IN,en-IN,,4.1,0.65,0.65,EMT|Driver,2026-09-01T00:00:00+00:00,2026-09-05T00:00:00+00:00,available window already passed
+s006,Nurse Manoj Pillai,+15550102006,Asia/Kolkata,IN,en-IN,,6.2,0.55,0.55,,2026-09-12T00:00:00+00:00,2026-09-14T00:00:00+00:00,no skill on file -- unqualified for RN need

@@ -8,3 +8,13 @@ __pycache__/
 *.jsonl
 !mobilize/artifacts/*.jsonl
 .DS_Store
+
+# Local tooling/session artifacts -- not part of the product, not for the PR
+.claude/
+.codex/
+graphify-out/
+CLAUDE.md
+COMPETITION.md
+EXECUTION_PLAN.md
+PLAN_REVIEW.md
+AGENTS.md
